@@ -174,12 +174,17 @@ class netstream(object):
 			data, pkgClass = peek_result[0], peek_result[1]
 			rsize = pkgClass.raw_size()
 			self.recv_buf = self.recv_buf[rsize:]
-			log.info('recv obj: ' + str(data))
+			# log.info('recv obj: ' + str(data))
 			pkg = pkgClass(data)
 			return pkg
 
 	def send_report(self, report):
 		pkg = protoc.PkgRep(report)
+		data = pkg.serialize()
+		self.__send_raw(data)
+
+	def send_ack(self, ack):
+		pkg = protoc.PkgSum(ack)
 		data = pkg.serialize()
 		self.__send_raw(data)
 

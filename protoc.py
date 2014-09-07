@@ -28,7 +28,10 @@ class PkgC2S(object):
 	HEADER_SIZE = None
 	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'empty')
 	def __init__(self):
-		self.data = {}	
+		self.data = {}
+
+	def asdict(self):
+		return self.data
 
 	@classmethod
 	def raw_size(cls):
@@ -70,18 +73,18 @@ class PkgRep(PkgC2S):
 		}
 		self.data.update(data)
 
-	def serialize(self):
-		tmp = []
-		for item in self.TUPLE_TYPE._fields:
-			if item == 'hdr':
-				tmp.append(HEAD_C2S)
-			elif item == 'ftype':
-				tmp.append(self.FRAME_TYPE)
-			elif item == 'fend':
-				tmp.append(END_FRAME)
-			else:
-				tmp.append(self.data[item])
-		return struct.pack(self.FMT, *tmp)
+	# def serialize(self):
+	# 	tmp = []
+	# 	for item in self.TUPLE_TYPE._fields:
+	# 		if item == 'hdr':
+	# 			tmp.append(HEAD_C2S)
+	# 		elif item == 'ftype':
+	# 			tmp.append(self.FRAME_TYPE)
+	# 		elif item == 'fend':
+	# 			tmp.append(END_FRAME)
+	# 		else:
+	# 			tmp.append(self.data[item])
+	# 	return struct.pack(self.FMT, *tmp)
 
 #ÐÄÌø°ü
 class PkgHeart(PkgC2S):
@@ -101,36 +104,49 @@ class PkgHeart(PkgC2S):
 		self.data.update(data)
 		self.data['iostat'] = 0x00
 
+	# def serialize(self):
+	# 	tmp = []
+	# 	for item in self.TUPLE_TYPE._fields:
+	# 		if item == 'hdr':
+	# 			tmp.append(HEAD_C2S)
+	# 		elif item == 'ftype':
+	# 			tmp.append(self.FRAME_TYPE)
+	# 		elif item == 'fend':
+	# 			tmp.append(END_FRAME)
+	# 		else:
+	# 			tmp.append(self.data[item])
+	# 	return struct.pack(self.FMT, *tmp)
+
+class PkgSum(object):
+	FRAME_TYPE = 0xDD
+	FRAME_SIZE = 13
+	FMT = '!HBHBHHBBH'
+	HEADER_FMT = '!HB'
+	HEADER_SIZE = 3
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype scnt stot counter cksum fend')
+	def __init__(self, data):
+		self.data = {
+			'hdr': 		HEAD_S2C,
+			'ftype':	self.FRAME_TYPE,
+			'counter':	0,
+			'cksum':	0,
+			'fend':		END_FRAME,
+		}
+		self.data.update(data)
+	
 	def serialize(self):
 		tmp = []
 		for item in self.TUPLE_TYPE._fields:
-			if item == 'hdr':
-				tmp.append(HEAD_C2S)
-			elif item == 'ftype':
-				tmp.append(self.FRAME_TYPE)
-			elif item == 'fend':
-				tmp.append(END_FRAME)
-			else:
-				tmp.append(self.data[item])
+			tmp.append(self.data[item])
 		return struct.pack(self.FMT, *tmp)
 
-class PkgSum(object):
-	def __init__(self):
-		pass
-	
-	def serialize(self):
-		pass
-
-	def unserialize(self):
-		pass
+	# def unserialize(self):
+	# 	pass
 
 class PkgCmd(object):
 	def __init__(self):
 		pass
 
 	def serialize(self):
-		pass
-
-	def unserialize(self):
 		pass
 

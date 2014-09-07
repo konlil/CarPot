@@ -7,6 +7,8 @@ import errno
 import netstream
 import log
 import gvars
+import protoc
+import models
 
 
 class nethost(object):
@@ -141,4 +143,71 @@ class nethost(object):
 				self.queue.append(gvars.NET_TIMER, 0, 0, '')
 				self.timeslap += period
 		
-		return 0	
+		return 0
+
+	# send data to hid
+	def send(self, hid, data):
+		pos = hid & 0xffff
+		if (pos < 0) or (pos >= len(self.clients)): return -1
+		client = self.clients[pos]
+		if client == None: return -2
+		if client.hid != hid: return -3
+		client.send(data)
+		client.process()
+		return 0
+
+	def broadcast(self, ack):
+		for client in self.clients:
+			if client:
+				client.send_ack(ack)
+				client.process()
+		return 0
+
+	# read event
+	def read(self):
+		if len(self.queue) == 0:
+			return (-1, 0, 0, '')
+		event = self.queue[0]
+		self.queue = self.queue[1:]
+		return event
+
+	# close client
+	def close(self, hid):
+		pos = hid & 0xffff
+		if (pos < 0) or (pos >= len(self.clients)): return -1
+		client = self.clients[pos]
+		if client == None: return -2
+		if client.hid != hid: return -3
+		client.close()
+		return 0
+
+	# 向数据库注册终端
+	def regist_terminal(self, cid, pid):
+		term = models.Terminal(cid, pid)
+		if term.checkInDB():
+			log.warning('try to regist terminal which already exists in db.')
+			return
+		term.writeToDB()
+
+	# 向数据库注册停车场
+	def regist_carpark(self, pid, stot, scnt):
+		park = models.CarPark(pid, stot, scnt)
+		if park.checkInDB():
+			log.warning('try to regist CarPark which already exists in db.')
+			return
+		park.writeToDB()
+
+	def process_event(self, hid, tag, data):
+		pos = hid & 0xffff
+		if (pos < 0) or (pos >= len(self.clients)): return -1
+		client = self.clients[pos]
+		if client == None: return -2
+		if client.hid != hid: return -3
+
+		raw_data = data.asdict()
+		if isinstance(data, protoc.PkgRep):
+			term = models.Terminal(raw_data['cid'])
+			park = models.CarPark(term.pid)
+			ack = park.onRecv(raw_data)
+			if ack:
+				self.broadcast(ack)
