@@ -144,9 +144,24 @@ class PkgSum(object):
 	# 	pass
 
 class PkgCmd(object):
-	def __init__(self):
-		pass
+	FRAME_TYPE = 0xBB
+	FRAME_SIZE = 17
+	FMT = '!HBHBIHHBH'
+	HEADER_FMT = '!HB'
+	HEADER_SIZE = 3
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype ip port stot cksum fend')
+	def __init__(self, data):
+		self.data = {
+			'hdr': 		HEAD_S2C,
+			'ftype':	self.FRAME_TYPE,
+			'cksum':	0,
+			'fend':		END_FRAME,
+		}
+		self.data.update(data)
 
 	def serialize(self):
-		pass
+		tmp = []
+		for item in self.TUPLE_TYPE._fields:
+			tmp.append(self.data[item])
+		return struct.pack(self.FMT, *tmp)
 
