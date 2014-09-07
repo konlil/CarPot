@@ -214,14 +214,15 @@ class nethost(object):
 				client.settag(hid, tag)
 
 			park = models.CarPark(term.pid)
-			ack = park.onRecv(raw_data)
-			if ack:
-				# 找到同一个车场的所有终端，广播之
-				for c in self.clients:
-					if c:
-						ctag = c.gettage()
-						if ctag > 0:
-							pid = (ctag & 0xffff0000) >> 16
-							if pid == term.pid:
-								c.send_ack(ack)
-								c.process()
+			park.onRecv(raw_data)
+			# ack = park.onRecv(raw_data)
+			# if ack:
+			# 	# 找到同一个车场的所有终端，广播之
+			# 	for c in self.clients:
+			# 		if c:
+			# 			ctag = c.gettage()
+			# 			if ctag > 0:
+			# 				pid = (ctag & 0xffff0000) >> 16
+			# 				if pid == term.pid:
+			# 					c.send_ack(ack)
+			# 					c.process()
