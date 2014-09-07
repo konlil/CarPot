@@ -15,6 +15,6 @@ report = {
 	'stat':		0x00, 
 	'counter':	0x01,
 }
-# client.send_report(report)
+client.send_report(report)
 
-# client.close()
+client.close()

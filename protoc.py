@@ -73,18 +73,18 @@ class PkgRep(PkgC2S):
 		}
 		self.data.update(data)
 
-	# def serialize(self):
-	# 	tmp = []
-	# 	for item in self.TUPLE_TYPE._fields:
-	# 		if item == 'hdr':
-	# 			tmp.append(HEAD_C2S)
-	# 		elif item == 'ftype':
-	# 			tmp.append(self.FRAME_TYPE)
-	# 		elif item == 'fend':
-	# 			tmp.append(END_FRAME)
-	# 		else:
-	# 			tmp.append(self.data[item])
-	# 	return struct.pack(self.FMT, *tmp)
+	def serialize(self):
+		tmp = []
+		for item in self.TUPLE_TYPE._fields:
+			if item == 'hdr':
+				tmp.append(HEAD_C2S)
+			elif item == 'ftype':
+				tmp.append(self.FRAME_TYPE)
+			elif item == 'fend':
+				tmp.append(END_FRAME)
+			else:
+				tmp.append(self.data[item])
+		return struct.pack(self.FMT, *tmp)
 
 #ÐÄÌø°ü
 class PkgHeart(PkgC2S):
@@ -104,18 +104,18 @@ class PkgHeart(PkgC2S):
 		self.data.update(data)
 		self.data['iostat'] = 0x00
 
-	# def serialize(self):
-	# 	tmp = []
-	# 	for item in self.TUPLE_TYPE._fields:
-	# 		if item == 'hdr':
-	# 			tmp.append(HEAD_C2S)
-	# 		elif item == 'ftype':
-	# 			tmp.append(self.FRAME_TYPE)
-	# 		elif item == 'fend':
-	# 			tmp.append(END_FRAME)
-	# 		else:
-	# 			tmp.append(self.data[item])
-	# 	return struct.pack(self.FMT, *tmp)
+	def serialize(self):
+		tmp = []
+		for item in self.TUPLE_TYPE._fields:
+			if item == 'hdr':
+				tmp.append(HEAD_C2S)
+			elif item == 'ftype':
+				tmp.append(self.FRAME_TYPE)
+			elif item == 'fend':
+				tmp.append(END_FRAME)
+			else:
+				tmp.append(self.data[item])
+		return struct.pack(self.FMT, *tmp)
 
 class PkgSum(object):
 	FRAME_TYPE = 0xDD

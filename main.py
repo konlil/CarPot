@@ -1,12 +1,11 @@
 #coding: gbk
-import log
 import nethost
 import time
 import gvars
 
 def main():
 	host = nethost.nethost()
-	if host.startup('58.210.93.254', 32005) < 0:
+	if host.startup('0.0.0.0', 32005) < 0:  #58.210.93.254
 		return
 	while 1:
 		time.sleep(0.1)

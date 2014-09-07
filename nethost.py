@@ -156,13 +156,14 @@ class nethost(object):
 		client.process()
 		return 0
 
-	def broadcast(self, ack):
-		for client in self.clients:
-			if client:
-				client.send_ack(ack)
-				client.process()
-		return 0
-
+	def nodelay (self, hid, nodelay = 0):
+		pos = hid & 0xffff
+		if (pos < 0) or (pos >= len(self.clients)): return -1
+		client = self.clients[pos]
+		if client == None: return -1
+		if hid != client.hid: return -1
+		return client.nodelay(nodelay)
+		
 	# read event
 	def read(self):
 		if len(self.queue) == 0:
