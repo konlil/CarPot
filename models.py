@@ -123,7 +123,7 @@ class CarPark(Model):
 
 	def writeToDB(self):
 		if self.checkInDB():
-			cmd = 'update %s set stot=%d scnt=%d where pid=%d;'%(self.tblname, self.stot, self.scnt, self.pid)
+			cmd = 'update %s set stot=%d, scnt=%d where pid=%d;'%(self.tblname, self.stot, self.scnt, self.pid)
 			self.dbobj.Exec(cmd)
 			log.warning('db: writeToDB failed, try to update already existed Terminal')
 		else:
