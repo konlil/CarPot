@@ -160,6 +160,24 @@ class netstream(object):
 		self.process()
 		return 0
 
+	# set tag
+	def settag(self, hid, tag):
+		pos = hid & 0xffff
+		if (pos < 0) or (pos >= len(self.clients)): return -1
+		client = self.clients[pos]
+		if client == None: return -2
+		if hid != client.hid: return -3
+		client.tag = tag
+		return 0
+	
+	def gettag(self, hid):
+		pos = hid & 0xffff
+		if (pos < 0) or (pos >= len(self.clients)): return -1
+		client = self.clients[pos]
+		if client == None: return -1
+		if hid != client.hid: return -1
+		return client.tag
+
 	# return state
 	def status(self):
 		return self.state
