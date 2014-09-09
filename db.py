@@ -1,22 +1,40 @@
 #coding: gbk
 import log
+import ConfigParser
 
-DATABASE_ENGINE = 'mssql'	# canbe "mssql", "sqlite"
+cf = ConfigParser.ConfigParser()
+cf.read('config.ini')
+sects = cf.sections()
+dbcfg = cf.options("db")
+items = cf.items('db')
 
-if DATABASE_ENGINE == 'sqlite':
+DB_ENGINE = cf.get('db', 'db_engine')
+DB_HOST = cf.get('db', 'db_host')
+DB_PORT = cf.get('db', 'db_port')
+DB_USER = cf.get('db', 'db_user')
+DB_PASS = cf.get('db', 'db_pass')
+DB_NAME = cf.get('db', 'db_name')
+
+if DB_ENGINE == 'sqlite':
 	import sqlite3
 else:
 	import pymssql
+	import _mssql
+	import decimal
+	import uuid
+
+decimal.__version__
+uuid.ctypes.__version__
+_mssql.__version__
 
 class DBBase(object):
 	def __init__(self):
 		self.conn = None
 
 class DBSqlite(DBBase):
-	DBFILE = 'pot.db'
 	def __init__(self):
 		super(DBSqlite, self).__init__()
-		self.conn = sqlite3.connect(self.DBFILE)
+		self.conn = sqlite3.connect(DB_NAME)
 		if not self.conn:
 			log.critical('create db connection failed. ' + str(self))
 		else:
@@ -47,8 +65,9 @@ class DBSqlite(DBBase):
 
 
 class DBMSSql(DBBase):
-	def __init__(self, host='218.4.157.251', user='sa', pwd='oracle54321::', db='park'):
+	def __init__(self, host, user, pwd, db):
 		super(DBMSSql, self).__init__()
+		log.info('connecting db: %s %s %s %s'%(host, user, pwd, db))
 		self.conn = pymssql.connect(host=host, user = user, \
 				password = pwd, database = db, charset='utf8')
 		cur = self.conn.cursor()
@@ -85,10 +104,14 @@ class DBMSSql(DBBase):
 	def Close(self):
 		self.conn.close()
 
-if DATABASE_ENGINE == 'sqlite':
+if DB_ENGINE == 'sqlite':
 	obj = DBSqlite()	
 else:
-	obj = DBMSSql('218.4.157.251', 'sa', 'oracle54321::', 'park')	
+	if DB_PORT:
+		host = '%s:%s'%(DB_HOST, DB_PORT)
+	else:
+		host = DB_HOST
+	obj = DBMSSql(host, DB_USER, DB_PASS, DB_NAME)	
 
 if __name__ == "__main__":
 	print obj.tableExists('test')
