@@ -5,15 +5,15 @@ import log
 class Model(object):
 	TABLE_DEF = {}
 	def __init__(self):
-		self.dbobj = db.DBSqlite()
+		db.dbobj = db.obj
 		self.tblname = self.__class__.__name__
-		if not self.dbobj.tableExists(self.tblname):
+		if not db.dbobj.tableExists(self.tblname):
 			tabledesc = ''
 			for k, v in self.TABLE_DEF.iteritems():
 				tabledesc += '%s %s,'%(k, v)
 			tabledesc = tabledesc[:-1]  # remove the last comma
-			self.dbobj.createTable(self.tblname, tabledesc)
-			self.dbobj.Commit()
+			db.dbobj.createTable(self.tblname, tabledesc)
+			db.dbobj.Commit()
 			log.info('db: table %s created.'%self.tblname)
 
 	def createTable(self):
@@ -39,7 +39,7 @@ class Terminal(Model):
 
 	def checkInDB(self):
 		cmd = 'select count(*) from %s where tid=%d;'%(self.tblname, self.tid)
-		cursor = self.dbobj.Exec(cmd)
+		cursor = db.dbobj.Exec(cmd)
 		results = cursor.fetchone()
 		if results and results[0] > 0:
 			return True
@@ -48,7 +48,7 @@ class Terminal(Model):
 
 	def syncFromDB(self):
 		cmd = 'select pid from %s where tid=%d;'%(self.tblname, self.tid)
-		cursor = self.dbobj.Exec(cmd)
+		cursor = db.dbobj.Exec(cmd)
 		results = cursor.fetchone()
 		if results:
 			self.pid = results[0]
@@ -60,13 +60,13 @@ class Terminal(Model):
 	def writeToDB(self):
 		if self.checkInDB():
 			cmd = 'update %s set pid=%d where tid=%d;'%(self.tblname, self.pid, self.tid)
-			self.dbobj.Exec(cmd)
+			db.dbobj.Exec(cmd)
 			log.warning('db: writeToDB failed, try to update already existed Terminal')
 		else:
 			cmd = 'insert into %s(tid, pid) values(%d, %d);'%(self.tblname, self.tid, self.pid)
-			self.dbobj.Exec(cmd)
+			db.dbobj.Exec(cmd)
 			log.info('db: writeToDB done. Terminal: %d, CarPark: %d'%(self.tid, self.pid))
-		self.dbobj.Commit()
+		db.dbobj.Commit()
 
 class CarPark(Model):
 	TABLE_DEF = {
@@ -103,7 +103,7 @@ class CarPark(Model):
 
 	def checkInDB(self):
 		cmd = 'select count(*) from %s where pid=%d;'%(self.tblname, self.pid)
-		cursor = self.dbobj.Exec(cmd)
+		cursor = db.dbobj.Exec(cmd)
 		results = cursor.fetchone()
 		if results and results[0] > 0:
 			return True
@@ -112,7 +112,7 @@ class CarPark(Model):
 
 	def syncFromDB(self):
 		cmd = 'select stot, scnt from %s where pid=%d;'%(self.tblname, self.pid)
-		cursor = self.dbobj.Exec(cmd)
+		cursor = db.dbobj.Exec(cmd)
 		results = cursor.fetchone()
 		if results:
 			self.stot = results[0]
@@ -124,17 +124,17 @@ class CarPark(Model):
 	def writeToDB(self):
 		if self.checkInDB():
 			cmd = 'update %s set stot=%d, scnt=%d where pid=%d;'%(self.tblname, self.stot, self.scnt, self.pid)
-			self.dbobj.Exec(cmd)
+			db.dbobj.Exec(cmd)
 			log.warning('db: writeToDB failed, try to update already existed Terminal')
 		else:
 			cmd = 'insert into %s(stot, scnt, pid) values(%d, %d, %d);'%(self.tblname, self.stot, self.scnt, self.pid)
-			self.dbobj.Exec(cmd)
+			db.dbobj.Exec(cmd)
 			log.info('db: writeToDB done. CarPark: %d, Total: %d, Current: %d'%(self.pid, self.stot, self.scnt))
-		self.dbobj.Commit()
+		db.dbobj.Commit()
 
 	def initTerminalCount(self):
 		cmd = 'select count(*) from Terminal where pid = %d;' % (self.pid)
-		cursor = self.dbobj.Exec(cmd)
+		cursor = db.dbobj.Exec(cmd)
 		results = cursor.fetchone()
 		if results:
 			self.tcnt = results[0]
