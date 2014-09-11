@@ -19,10 +19,10 @@ if DB_ENGINE == 'sqlite':
 	import sqlite3
 else:
 	import pymssql
-	import _mssql
-	import decimal
-	import uuid
 
+import _mssql
+import decimal
+import uuid
 decimal.__version__
 uuid.ctypes.__version__
 _mssql.__version__
@@ -38,7 +38,7 @@ class DBSqlite(DBBase):
 		if not self.conn:
 			log.critical('create db connection failed. ' + str(self))
 		else:
-			log.info('connection to db: %s'%self.DBFILE)
+			log.info('connection to db: %s'%DB_NAME)
 
 	def tableExists(self, tblname):
 		cmd = 'select count(*) from sqlite_master where type="table" and name="%s";'%tblname

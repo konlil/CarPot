@@ -97,3 +97,8 @@ $RECYCLE.BIN/
 *.msi
 *.msm
 *.msp
+*.ini~
+sqliteadmin.zip
+park_service_dist.zip
+pot.db
+park
