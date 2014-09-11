@@ -170,24 +170,10 @@ class nethost(asyncore.dispatcher):
 		if client.hid != hid: return -3
 
 		raw_data = data.asdict()
-		if isinstance(data, protoc.PkgRep):
-			term = models.Terminal(raw_data['cid'])
-
-			#init client tag: terminal id & carpark id
-			if tag < 0:
-				tag = (term.tid & 0xffff) | (term.pid << 16)
-				client.tag = tag
-
-			park = models.CarPark(term.pid)
-			park.onRecv(raw_data)
-			# ack = park.onRecv(raw_data)
-			# if ack:
-			# 	# 找到同一个车场的所有终端，广播之
-			# 	for c in self.clients:
-			# 		if c:
-			# 			ctag = c.gettage()
-			# 			if ctag > 0:
-			# 				pid = (ctag & 0xffff0000) >> 16
-			# 				if pid == term.pid:
-			# 					c.send_ack(ack)
-			# 					c.process()
+		if isinstance(data, protoc.PkgHeart):
+			pkg = models.TerminalHeart(raw_data['cid'], raw_data['ctype'], raw_data['iostat'], \
+				raw_data['scnt'], raw_data['stot'], raw_data['stat'], raw_data['count'])
+			pkg.writeToDB()
+		elif isinstance(data, protoc.PkgRep):
+			pkg = models.ParkLog(raw_data['cid'], raw_data['scnt'])
+			pkg.writeToDB()

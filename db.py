@@ -77,14 +77,12 @@ class DBMSSql(DBBase):
 			log.info('connection to db: %s'%db)
 
 	def tableExists(self, tblname):
-		cmd = 'select count(*) from sysobjects where id=object_id("%s") and type="u";'%tblname
-		cursor = self.conn.execute(cmd)
-		if cursor:
-			next = cursor.next()
-			if next[0] == 0:
-				return False
-			else:
-				return True
+		cmd = "select count(*) from sysobjects where name='%s' and type='U';"%tblname
+		cur = self.conn.cursor()
+		cur.execute(cmd)
+		next = cur.next()
+		if next and next[0] > 0:
+			return True
 		return False
 
 	def createTable(self, tblname, tbldesc):
@@ -114,4 +112,4 @@ else:
 	obj = DBMSSql(host, DB_USER, DB_PASS, DB_NAME)	
 
 if __name__ == "__main__":
-	print obj.tableExists('test')
+	print obj.tableExists('park_Log')
