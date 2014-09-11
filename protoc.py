@@ -73,6 +73,11 @@ class PkgRep(PkgC2S):
 		}
 		self.data.update(data)
 
+	def __str__(self):
+		return 'PkgRep - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
+				self.data['cid'], self.data['ctype'], self.data['scnt'], self.data['iostat'], self.data['stot'], \
+				self.data['stat'], self.data['counter'] )
+
 	def serialize(self):
 		tmp = []
 		for item in self.TUPLE_TYPE._fields:
@@ -103,6 +108,11 @@ class PkgHeart(PkgC2S):
 		}
 		self.data.update(data)
 		self.data['iostat'] = 0x00
+	
+	def __str__(self):
+		return 'PkgHeart - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
+				self.data['cid'], self.data['ctype'], self.data['scnt'], self.data['iostat'], self.data['stot'], \
+				self.data['stat'], self.data['counter'])
 
 	def serialize(self):
 		tmp = []
