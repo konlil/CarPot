@@ -57,7 +57,7 @@ class DBSqlite(DBBase):
 		self.conn.execute(cmd)
 
 	def Exec(self, cmd):
-		log.debug('db %s' % cmd)
+		#log.debug('db %s' % cmd)
 		return self.conn.execute(cmd)
 
 	def Commit(self):
@@ -91,7 +91,7 @@ class DBMSSql(DBBase):
 		self.conn.execute(cmd)
 
 	def Exec(self, cmd):
-		log.debug('db %s' % cmd)
+		#log.debug('db %s' % cmd)
 		cur = self.conn.cursor()
 		cur.execute(cmd)
 		return cur
@@ -103,13 +103,13 @@ class DBMSSql(DBBase):
 		self.conn.close()
 
 if DB_ENGINE == 'sqlite':
-	obj = DBSqlite()	
+	obj = DBSqlite()
 else:
 	if DB_PORT:
 		host = '%s:%s'%(DB_HOST, DB_PORT)
 	else:
 		host = DB_HOST
-	obj = DBMSSql(host, DB_USER, DB_PASS, DB_NAME)	
+	obj = DBMSSql(host, DB_USER, DB_PASS, DB_NAME)
 
 if __name__ == "__main__":
 	print obj.tableExists('park_Log')
