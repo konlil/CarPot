@@ -92,7 +92,7 @@ class netstream(asyncore.dispatcher):
 	# return state
 	def status(self):
 		return self.state
-	
+
 	# error code
 	def error(self):
 		return self.errc

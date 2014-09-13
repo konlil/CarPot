@@ -62,7 +62,7 @@ class TerminalHeart(Model):
 		db.obj.Commit()
 
 	def updateToDB(self):
-		cmd = 'update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d where tid=%d;'%( \
+		cmd = 'update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d where id=%d;'%( \
 			self.tblname, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, self.tid)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
@@ -81,7 +81,15 @@ class ParkLog(Model):
 	TABLE_DEF = {
 		"id": "int primary key",
 		"currCnt": "int NOT NULL",
-		'updateTime': "datetime",
+		'updateTime': "datetime",report = {
+	'cid':		0x01,
+	'ctype':	0x11,
+	'scnt': 	198,
+	'iostat':	0xAA,		#0xAA, 0x55
+	'stot':		200,
+	'stat':		0x00,
+	'counter':	0x01,
+}
 	}
 	tblname = 'park_Log2'
 	err = 0
@@ -184,7 +192,7 @@ class CarPark(Model):
 	TABLE_DEF = {
 		"pid": "int primary key",
 		"stot": "int",
-		"scnt": "int", 
+		"scnt": "int",
 	}
 	def __init__(self, pid, stot=None, scnt=None):
 		super(CarPark, self).__init__()

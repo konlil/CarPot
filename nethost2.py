@@ -50,9 +50,9 @@ class nethost(asyncore.dispatcher):
 
 		for client in self.clients:
 			if not client: continue
-			try: 
+			try:
 				client.close()
-			except: 
+			except:
 				pass
 		self.clients = []
 		self.state = gvars.NET_STATE_STOP
@@ -172,7 +172,7 @@ class nethost(asyncore.dispatcher):
 		raw_data = data.asdict()
 		if isinstance(data, protoc.PkgHeart):
 			pkg = models.TerminalHeart(raw_data['cid'], raw_data['ctype'], raw_data['iostat'], \
-				raw_data['scnt'], raw_data['stot'], raw_data['stat'], raw_data['count'])
+				raw_data['scnt'], raw_data['stot'], raw_data['stat'], raw_data['counter'])
 			pkg.writeToDB()
 		elif isinstance(data, protoc.PkgRep):
 			pkg = models.ParkLog(raw_data['cid'], raw_data['scnt'])
