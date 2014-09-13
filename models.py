@@ -81,15 +81,7 @@ class ParkLog(Model):
 	TABLE_DEF = {
 		"id": "int primary key",
 		"currCnt": "int NOT NULL",
-		'updateTime': "datetime",report = {
-	'cid':		0x01,
-	'ctype':	0x11,
-	'scnt': 	198,
-	'iostat':	0xAA,		#0xAA, 0x55
-	'stot':		200,
-	'stat':		0x00,
-	'counter':	0x01,
-}
+		'updateTime': "datetime",
 	}
 	tblname = 'park_Log2'
 	err = 0
