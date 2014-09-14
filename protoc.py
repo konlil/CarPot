@@ -90,7 +90,7 @@ class PkgRep(PkgC2S):
 	FMT = '!HBHBHBHBBH'
 	HEADER_FMT = '!HB'
 	HEADER_SIZE = 3
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype scnt iostat stot stat counter fend')
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter fend')
 	def __init__(self, data):
 		super(PkgRep, self).__init__()
 		self.data = {
@@ -100,9 +100,31 @@ class PkgRep(PkgC2S):
 		}
 		self.data.update(data)
 
+	@property
+	def scnt(self):
+		return self.data['scnt1']*100+self.data['scnt2']*10+self.data['scnt3']
+	@scnt.setter
+	def scnt(self, v):
+		self.data['scnt1'] = int(v/100)
+		self.data['scnt2'] = int((v%100)/10)
+		self.data['scnt3'] = v%10
+
+	@property
+	def stot(self):
+		return self.data['stot1']*100+self.data['stot2']*10+self.data['stot3']
+	@stot.setter
+	def stot(self, v):
+		self.data['stot1'] = int(v/100)
+		self.data['stot2'] = int((v%100)/10)
+		self.data['stot3'] = v%10
+
+
 	def __str__(self):
 		return 'PkgRep - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
-				self.data['cid'], self.data['ctype'], self.data['scnt'], self.data['iostat'], self.data['stot'], \
+				self.data['cid'], self.data['ctype'], \
+				self.scnt, \
+				self.data['iostat'], \
+				self.stot, \
 				self.data['stat'], self.data['counter'] )
 
 	def serialize(self):
@@ -126,7 +148,7 @@ class PkgHeart(PkgC2S):
 	HEADER_FMT = '!HB'
 	HEADER_SIZE = 3
 	#0x68 0x68 0xaa 0x10 0x14 0xff 0x0 0x7 0x0 0x0 0x64 0x0 0x90 0xd 0xa
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype scnt iostat stot stat counter fend')
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter fend')
 	def __init__(self, data):
 		super(PkgHeart, self).__init__()
 		self.data = {
@@ -137,9 +159,30 @@ class PkgHeart(PkgC2S):
 		self.data.update(data)
 		self.data['iostat'] = 0x00
 
+	@property
+	def scnt(self):
+		return self.data['scnt1']*100+self.data['scnt2']*10+self.data['scnt3']
+	@scnt.setter
+	def scnt(self, v):
+		self.data['scnt1'] = int(v/100)
+		self.data['scnt2'] = int((v%100)/10)
+		self.data['scnt3'] = v%10
+
+	@property
+	def stot(self):
+		return self.data['stot1']*100+self.data['stot2']*10+self.data['stot3']
+	@stot.setter
+	def stot(self, v):
+		self.data['stot1'] = int(v/100)
+		self.data['stot2'] = int((v%100)/10)
+		self.data['stot3'] = v%10
+
 	def __str__(self):
 		return 'PkgHeart - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
-				self.data['cid'], self.data['ctype'], self.data['scnt'], self.data['iostat'], self.data['stot'], \
+				self.data['cid'], self.data['ctype'], \
+				self.scnt, \
+				self.data['iostat'], \
+				self.stot, \
 				self.data['stat'], self.data['counter'])
 
 	def serialize(self):

@@ -26,25 +26,19 @@ class Model(object):
 class TerminalHeart(Model):
 	TABLE_DEF = {
 		"id": "int primary key",
-		"typ": "int NOT NULL",
-		"iostat":	"int NOT NULL",
-		"curr": "int NOT NULL",
-		"total": "int NOT NULL",
+		#"typ": "int NOT NULL",
+		#"iostat":	"int NOT NULL",
+		#"curr": "int NOT NULL",
+		#"total": "int NOT NULL",
 		"stat": "int NOT NULL",
-		"cnter": "int NOT NULL"
+		#"cnter": "int NOT NULL"
+		'updateTime': "datetime",
 	}
 	tblname = 'HeartBeat'
-	cacheInDB = {}
-
-	def __init__(self, tid, typ, io, curr, tot, stat, counter):
+	def __init__(self, tid, stat):
 		super(TerminalHeart, self).__init__()
 		self.tid = tid
-		self.typ = typ
-		self.io = io
-		self.curr = curr
-		self.tot = tot
 		self.stat = stat
-		self.counter = counter
 
 	def checkInDB(self):
 		cmd = 'select count(*) from %s where id=%d;'%(self.tblname, self.tid)
@@ -56,39 +50,51 @@ class TerminalHeart(Model):
 			return False
 
 	def insertNewToDB(self):
-		cmd = 'insert into %s(id,typ,iostat,curr,total,stat,cnter) values(%d,%d,%d,%d,%d,%d,%d);'%( \
-				self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter)
+		#cmd = 'insert into %s(id,typ,iostat,curr,total,stat,cnter) values(%d,%d,%d,%d,%d,%d,%d);'%( \
+		#		self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter)
+		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+		cmd = 'insert into %s(id,stat,updateTime) values(%d,%d,%s);'%( \
+				self.tblname, self.tid, self.stat, now)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 
 	def updateToDB(self):
-		cmd = 'update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d where id=%d;'%( \
-			self.tblname, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, self.tid)
+		#cmd = 'update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d where id=%d;'%( \
+		#	self.tblname, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, self.tid)
+		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+		cmd = 'update %s set stat=%d,updateTime=%s where id=%d;'%( \
+			self.tblname, self.stat, now, self.tid)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 
 	def writeToDB(self):
-		# if TerminalHeart.cacheInDB.has_key(self.tid):
-		# 	self.updateToDB()
-		# 	return
 		if self.checkInDB():
 			self.updateToDB()
 		else:
 			self.insertNewToDB()
-			TerminalHeart.cacheInDB[self.tid] = True
 
 class ParkLog(Model):
 	TABLE_DEF = {
 		"id": "int primary key",
-		"currCnt": "int NOT NULL",
+		"typ": "int NOT NULL",
+		"iostat":	"int NOT NULL",
+		"curr": "int NOT NULL",
+		"total": "int NOT NULL",
+		"stat": "int NOT NULL",
+		"cnter": "int NOT NULL",
 		'updateTime': "datetime",
 	}
 	tblname = 'park_Log2'
 	err = 0
-	def __init__(self, tid, cnt):
+	def __init__(self, tid, typ, io, curr, tot, stat, counter):
 		super(ParkLog, self).__init__()
 		self.tid = tid
-		self.cnt = cnt
+		self.typ = typ
+		self.io = io
+		self.curr = curr
+		self.tot = tot
+		self.stat = stat
+		self.counter = counter
 
 	# @classmethod
 	# def checkTable(cls):
@@ -111,8 +117,10 @@ class ParkLog(Model):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = "insert into %s(id,currCnt,updateTime) values(%d,%d,'%s');"%( \
-				self.tblname, self.tid, self.cnt, now)
+		cmd = 'insert into %s(id,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,%s);'%( \
+				self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now)
+		#cmd = "insert into %s(id,currCnt,updateTime) values(%d,%d,'%s');"%( \
+		#		self.tblname, self.tid, self.cnt, now)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 
@@ -120,8 +128,10 @@ class ParkLog(Model):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = "update %s set currCnt=%d,updateTime='%s' where id=%d;"%( \
-			self.tblname, self.cnt, now, self.tid)
+		#cmd = "update %s set currCnt=%d,updateTime='%s' where id=%d;"%( \
+		#	self.tblname, self.cnt, now, self.tid)
+		cmd = 'update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d,updateTime=%s where id=%d;'%( \
+			self.tblname, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now, self.tid)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 
