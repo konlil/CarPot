@@ -6,6 +6,12 @@ import asyncore
 import log
 import protoc
 
+def hex_dump(buf):
+	tmp = ''
+	for i in xrange(len(buf)):
+		tmp += '%02X '%ord(buf[i])
+	return tmp
+
 #======================================================================
 # netstream - basic tcp stream
 #======================================================================
@@ -48,8 +54,8 @@ class netstream(asyncore.dispatcher):
 
 	def handle_read(self):
 		rdata = self.recv(1024)
+		log.debug('from %s: %s'%(self, hex_dump(rdata)))
 		self.recv_buf = self.recv_buf + rdata
-		# log.debug('handle_read: %s'%(self.recv_buf))
 		if self.on_recv:
 			self.on_recv(self)
 
@@ -73,9 +79,25 @@ class netstream(asyncore.dispatcher):
 	def __peek_protoc(self):
 		if len(self.recv_buf) == 0:
 			return None
-		check_result = protoc.check_recv(self.recv_buf)
-		#log.debug('peek protoc:%s'%self.recv_buf)
-		return check_result
+
+		check_result, proto_class, err = protoc.check_recv(self.recv_buf)
+		# wait for un-complete package
+		if err in [protoc.PKG_ERR_NOT_READY, protoc.PKG_ERR_TOO_SHORT]:
+			log.debug('package un-complete, wait for it')
+			return None
+
+		bad_pkg_bytes = 0
+		while err != protoc.PKG_OK and len(self.recv_buf) > 0:
+			bad_pkg_bytes += 1
+			self.recv_buf = self.recv_buf[1:]
+			check_result, proto_class, err = protoc.check_recv(self.recv_buf)
+
+		if bad_pkg_bytes:
+			log.critical('detect bad package, ignored %d bytes' % bad_pkg_bytes)
+
+		if err == protoc.PKG_OK:
+			return (check_result, proto_class)
+		return None
 
 	# read data from recv_buf (read and delete it from recv_buf)
 	def __recv_raw(self, size):
@@ -104,7 +126,6 @@ class netstream(asyncore.dispatcher):
 			data, pkgClass = peek_result[0], peek_result[1]
 			rsize = pkgClass.raw_size()
 			self.recv_buf = self.recv_buf[rsize:]
-			# log.debug('recv obj: ' + str(data))
 			pkg = pkgClass(data)
 			return pkg
 

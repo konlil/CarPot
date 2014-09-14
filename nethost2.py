@@ -16,7 +16,7 @@ class nethost(asyncore.dispatcher):
 		self.clients = []
 		self.count = 0
 		self.index = 1
-		self.queue = []
+		#self.queue = []
 		self.timeout = 120.0
 		self.timeslap = long(time.time()*1000)
 		self.period = 0
@@ -102,24 +102,26 @@ class nethost(asyncore.dispatcher):
 
 			self.clients[pos] = client
 			self.count += 1
-			self.queue.append((gvars.NET_NEW, hid, 0, repr(client.peername)))
+			#self.queue.append((gvars.NET_NEW, hid, 0, repr(client.peername)))
 			log.info('client connected, peer: %s, pos: %d, index: %d'%(client.peername, pos, self.index-1))
 
 	def on_client_recv(self, client):
 		current = time.time()
-		if client.status() == gvars.NET_STATE_ESTABLISHED or 1:
+		if client.status() == gvars.NET_STATE_ESTABLISHED:
+			client.active = current
 			data = client.read_pkg()
 			if data is None:
 				return
-			log.debug('recv pkg from client: %s, data: %s'%(client.peername, data))
-			self.queue.append((gvars.NET_DATA, client.hid, client.tag, data))
-			client.active = current
+			#log.debug('recv pkg from client: %s, data: %s'%(client.peername, data))
+			#self.queue.append((gvars.NET_DATA, client.hid, client.tag, data))
 			self.process_event(client.hid, client.tag, data)
+		else:
+			log.critical('try to recv data from dead client: %s'%client.peername)
 
 	def on_client_close(self, client):
 		hid, tag = client.hid, client.tag
 		pos = hid & 0xffff
-		self.queue.append((gvars.NET_LEAVE, hid, tag, ''))
+		#self.queue.append((gvars.NET_LEAVE, hid, tag, ''))
 		self.clients[pos] = None
 		log.info('client leave, peer: %s, pos: %d'%(client.peername, pos))
 		del client
@@ -164,10 +166,16 @@ class nethost(asyncore.dispatcher):
 
 	def process_event(self, hid, tag, data):
 		pos = hid & 0xffff
-		if (pos < 0) or (pos >= len(self.clients)): return -1
+		if (pos < 0) or (pos >= len(self.clients)):
+			log.error('process event error, invalid client position: %d'%pos)
+			return -1
 		client = self.clients[pos]
-		if client == None: return -2
-		if client.hid != hid: return -3
+		if client == None:
+			log.error('process event error, invalid client handle: None')
+			return -2
+		if client.hid != hid:
+			log.error('process event error, hid mismatch, client: %d, hid: %d'%(client.hid, hid))
+			return -3
 
 		raw_data = data.asdict()
 		if isinstance(data, protoc.PkgHeart):
@@ -177,3 +185,4 @@ class nethost(asyncore.dispatcher):
 		elif isinstance(data, protoc.PkgRep):
 			pkg = models.ParkLog(raw_data['cid'], raw_data['scnt'])
 			pkg.writeToDB()
+		log.debug('data processed.')
