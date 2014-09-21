@@ -179,10 +179,17 @@ class nethost(asyncore.dispatcher):
 
 		raw_data = data.asdict()
 		if isinstance(data, protoc.PkgHeart):
-			pkg = models.TerminalHeart(raw_data['cid'], raw_data['stat'])
+			pkg = models.TerminalHeart(data.cid, raw_data['stat'])
 			pkg.writeToDB()
 		elif isinstance(data, protoc.PkgRep):
-			pkg = models.ParkLog(raw_data['cid'], raw_data['ctype'], raw_data['iostat'], \
-				data.scnt, data.stot, raw_data['stat'], raw_data['counter'])
+			pkg = models.ParkLog(data.cid, raw_data['ctype'], raw_data['iostat'], \
+				data.scnt, data.stot, raw_data['stat'], data.counter)
 			pkg.writeToDB()
+
+			equip = models.ParkEquip(data.cid)
+			parkId = equip.getParkId()
+			if parkId:
+				park = models.ParkInfo(parkId, data.scnt)
+				park.writeToDB()
+
 		log.debug('data processed.')

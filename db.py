@@ -88,7 +88,8 @@ class DBMSSql(DBBase):
 	def createTable(self, tblname, tbldesc):
 		cmd = 'create table %s (%s)'%(tblname, tbldesc)
 		log.debug('db: %s'%cmd)
-		self.conn.execute(cmd)
+		cur = self.conn.cursor()
+		cur.execute(cmd)
 
 	def Exec(self, cmd):
 		#log.debug('db %s' % cmd)

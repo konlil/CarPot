@@ -53,7 +53,7 @@ class TerminalHeart(Model):
 		#cmd = 'insert into %s(id,typ,iostat,curr,total,stat,cnter) values(%d,%d,%d,%d,%d,%d,%d);'%( \
 		#		self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter)
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = 'insert into %s(id,stat,updateTime) values(%d,%d,%s);'%( \
+		cmd = "insert into %s(id,stat,updateTime) values(%d,%d,'%s');"%( \
 				self.tblname, self.tid, self.stat, now)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
@@ -62,7 +62,7 @@ class TerminalHeart(Model):
 		#cmd = 'update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d where id=%d;'%( \
 		#	self.tblname, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, self.tid)
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = 'update %s set stat=%d,updateTime=%s where id=%d;'%( \
+		cmd = "update %s set stat=%d,updateTime='%s' where id=%d;"%( \
 			self.tblname, self.stat, now, self.tid)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
@@ -117,7 +117,7 @@ class ParkLog(Model):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = 'insert into %s(id,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,%s);'%( \
+		cmd = "insert into %s(id,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
 				self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now)
 		#cmd = "insert into %s(id,currCnt,updateTime) values(%d,%d,'%s');"%( \
 		#		self.tblname, self.tid, self.cnt, now)
@@ -130,7 +130,7 @@ class ParkLog(Model):
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 		#cmd = "update %s set currCnt=%d,updateTime='%s' where id=%d;"%( \
 		#	self.tblname, self.cnt, now, self.tid)
-		cmd = 'update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d,updateTime=%s where id=%d;'%( \
+		cmd = "update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d,updateTime='%s' where id=%d;"%( \
 			self.tblname, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now, self.tid)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
@@ -143,126 +143,56 @@ class ParkLog(Model):
 		else:
 			self.insertNewToDB()
 
-
-class Terminal(Model):
-	TABLE_DEF = {
-		"tid": "int primary key",
-		"pid": "int NOT NULL"
-	}
-	def __init__(self, tid, pid=None):
+class ParkEquip(Model):
+	tblname = 'park_equip'
+	def __init__(self, tid):
 		super(Terminal, self).__init__()
 		self.tid = tid
-		self.pid = pid
-	# 	if self.pid is None:
-	# 		self.syncFromDB()
+		self.pid = None
 
 	# def __str__(self):
 	# 	return '[DBRecord]Terminal tid: %d, pid: %d'%(self.tid, self.pid)
 
-	# def checkInDB(self):
-	# 	cmd = 'select count(*) from %s where tid=%d;'%(self.tblname, self.tid)
-	# 	cursor = db.obj.Exec(cmd)
-	# 	results = cursor.fetchone()
-	# 	if results and results[0] > 0:
-	# 		return True
-	# 	else:
-	# 		return False
+	def getParkId(self):
+		if not self.tid:
+			return
+		cmd = "select parkcode from %s where equipid='%d'" % (self.tblname, self.tid)
+		cursor = db.obj.Exec(cmd)
+		results = cursor.fetchone()
+		if results and results[0] > 0:
+			self.pid = results[0]
+			return results[0]
 
-	# def syncFromDB(self):
-	# 	cmd = 'select pid from %s where tid=%d;'%(self.tblname, self.tid)
-	# 	cursor = db.obj.Exec(cmd)
-	# 	results = cursor.fetchone()
-	# 	if results:
-	# 		self.pid = results[0]
-	# 		print self
-	# 	else:
-	# 		log.error('db: got no data from db (Terminal: %d).'%self.tid)
-	# 		raise
-
-	# def writeToDB(self):
-	# 	if self.checkInDB():
-	# 		cmd = 'update %s set pid=%d where tid=%d;'%(self.tblname, self.pid, self.tid)
-	# 		db.obj.Exec(cmd)
-	# 		log.warning('db: writeToDB failed, try to update already existed Terminal')
-	# 	else:
-	# 		cmd = 'insert into %s(tid, pid) values(%d, %d);'%(self.tblname, self.tid, self.pid)
-	# 		db.obj.Exec(cmd)
-	# 		log.info('db: writeToDB done. Terminal: %d, CarPark: %d'%(self.tid, self.pid))
-	# 	db.obj.Commit()
-
-class CarPark(Model):
-	TABLE_DEF = {
-		"pid": "int primary key",
-		"stot": "int",
-		"scnt": "int",
-	}
-	def __init__(self, pid, stot=None, scnt=None):
-		super(CarPark, self).__init__()
+class ParkInfo(Model):
+	tblname = 'parkInfo'
+	def __init__(self, pid, scnt=None):
+		super(ParkInfo, self).__init__()
 		self.pid = pid
-		self.stot = stot
 		self.scnt = scnt
-		self.tcnt = 0  			#ÖÕ¶ËÊýÁ¿
-	# 	if self.stot is None or self.scnt is None:
-	# 		self.syncFromDB()
-	# 	self.initTerminalCount()
 
 	# def __str__(self):
 	# 	return '[DBRecord]CarPark pid: %d, stot: %d, scnt: %d'%(self.pid, self.stot, self.scnt)
+	
+	def checkInDB(self):
+		cmd = 'select count(*) from %s where Code=%d;'%(self.tblname, self.pid)
+		cursor = db.obj.Exec(cmd)
+		results = cursor.fetchone()
+		if results and results[0] > 0:
+			return True
+		else:
+			return False
 
-	# def onRecv(self, raw_data):
-	# 	if raw_data['iostat'] == 0xAA:
-	# 		self.scnt -= 1
-	# 	elif raw_data['iostat'] == 0x55:
-	# 		self.scnt += 1
-	# 	self.writeToDB()
+	def writeToDB(self):
+		if not ( self.scnt and self.pid ):
+			log.error('db: writeToDB failed, try write invalid parkinfo data (%s,%s) to db' % (str(self.pid), str(self.scnt)))
+			return
 
-	# 	if self.tcnt == 1:
-	# 		pass
-	# 	elif self.tcnt > 1:
-	# 		return (self.stot, self.scnt)
-	# 	else:
-	# 		log.error('db: there is not Terminal in CarPark: %d ?'%self.pid)
-
-	# def checkInDB(self):
-	# 	cmd = 'select count(*) from %s where pid=%d;'%(self.tblname, self.pid)
-	# 	cursor = db.obj.Exec(cmd)
-	# 	results = cursor.fetchone()
-	# 	if results and results[0] > 0:
-	# 		return True
-	# 	else:
-	# 		return False
-
-	# def syncFromDB(self):
-	# 	cmd = 'select stot, scnt from %s where pid=%d;'%(self.tblname, self.pid)
-	# 	cursor = db.obj.Exec(cmd)
-	# 	results = cursor.fetchone()
-	# 	if results:
-	# 		self.stot = results[0]
-	# 		self.scnt = results[1]
-	# 	else:
-	# 		log.error('db: got no data from db (CarPark: %d).'%self.pid)
-	# 		raise
-
-	# def writeToDB(self):
-	# 	if self.checkInDB():
-	# 		cmd = 'update %s set stot=%d, scnt=%d where pid=%d;'%(self.tblname, self.stot, self.scnt, self.pid)
-	# 		db.obj.Exec(cmd)
-	# 		log.warning('db: writeToDB failed, try to update already existed Terminal')
-	# 	else:
-	# 		cmd = 'insert into %s(stot, scnt, pid) values(%d, %d, %d);'%(self.tblname, self.stot, self.scnt, self.pid)
-	# 		db.obj.Exec(cmd)
-	# 		log.info('db: writeToDB done. CarPark: %d, Total: %d, Current: %d'%(self.pid, self.stot, self.scnt))
-	# 	db.obj.Commit()
-
-	# def initTerminalCount(self):
-	# 	cmd = 'select count(*) from Terminal where pid = %d;' % (self.pid)
-	# 	cursor = db.obj.Exec(cmd)
-	# 	results = cursor.fetchone()
-	# 	if results:
-	# 		self.tcnt = results[0]
-	# 	else:
-	# 		log.error('db: init Terminal count for CarPark: %d failed.'%self.pid)
-	# 		return
+		if self.checkInDB():
+			cmd = 'update %s set syberth=%d where pid=%d;'%(self.tblname, self.scnt, self.pid)
+			db.obj.Exec(cmd)
+			db.obj.Commit()
+		else:
+			log.error('db: writeToDB failed, record of park %d not found.' % self.pid)
 
 TerminalHeart.checkTable()
 ParkLog.checkTable()

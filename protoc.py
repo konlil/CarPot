@@ -19,6 +19,11 @@ PKG_ERR_INVALID_FRAMETYPE = 6
 #===========================
 # factory method
 #===========================
+def hex_dump(buf):
+	tmp = ''
+	for i in xrange(len(buf)):
+		tmp += '%02X '%ord(buf[i])
+	return tmp
 def check_recv(buf):
 	classes = [PkgRep, PkgHeart]
 	err = PKG_ERR_UNKNOWN
@@ -80,17 +85,15 @@ class PkgC2S(object):
 
 	@classmethod
 	def unserialize(cls, buf):
-		obj = cls.TUPLE_TYPE._make(struct.unpack(cls.FMT, buf))
+		unpacked = struct.unpack(cls.FMT, buf)
+		obj = cls.TUPLE_TYPE._make(unpacked)
 		return cls.TUPLE_TYPE._asdict(obj)
-
 #主动包
 class PkgRep(PkgC2S):
 	FRAME_TYPE = 0x55
-	FRAME_SIZE = 15
-	FMT = '!HBHBHBHBBH'
+	FMT = '!HB4BB3BB3BB2BH'
 	HEADER_FMT = '!HB'
-	HEADER_SIZE = 3
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter fend')
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid1 cid2 cid3 cid4 ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter1 counter2 fend')
 	def __init__(self, data):
 		super(PkgRep, self).__init__()
 		self.data = {
@@ -99,6 +102,16 @@ class PkgRep(PkgC2S):
 			'fend':		END_FRAME,
 		}
 		self.data.update(data)
+
+	@property
+	def cid(self):
+		return self.data['cid1']*1000+self.data['cid2']*100+self.data['cid3']*10+self.data['cid4']
+	@cid.setter
+	def cid(self, v):
+		self.data['cid1'] = int(v/1000)
+		self.data['cid2'] = int((v%1000)/100)
+		self.data['cid3'] = int((v%100)/10)
+		self.data['cid4'] = v%10
 
 	@property
 	def scnt(self):
@@ -117,15 +130,23 @@ class PkgRep(PkgC2S):
 		self.data['stot1'] = int(v/100)
 		self.data['stot2'] = int((v%100)/10)
 		self.data['stot3'] = v%10
+	
+	@property
+	def counter(self):
+		return self.data['counter1']*10+self.data['counter2']
+	@counter.setter
+	def counter(self, v):
+		self.data['counter1'] = int(v/10)
+		self.data['counter2'] = v%10
 
 
 	def __str__(self):
 		return 'PkgRep - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
-				self.data['cid'], self.data['ctype'], \
+				self.cid, self.data['ctype'], \
 				self.scnt, \
 				self.data['iostat'], \
 				self.stot, \
-				self.data['stat'], self.data['counter'] )
+				self.data['stat'], self.counter )
 
 	def serialize(self):
 		tmp = []
@@ -143,12 +164,9 @@ class PkgRep(PkgC2S):
 #心跳包
 class PkgHeart(PkgC2S):
 	FRAME_TYPE = 0xAA
-	FRAME_SIZE = 15
-	FMT = '!HBHBHBHBBH'
+	FMT = '!HB4BB3BB3BB2BH'
 	HEADER_FMT = '!HB'
-	HEADER_SIZE = 3
-	#0x68 0x68 0xaa 0x10 0x14 0xff 0x0 0x7 0x0 0x0 0x64 0x0 0x90 0xd 0xa
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter fend')
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid1 cid2 cid3 cid4 ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter1 counter2 fend')
 	def __init__(self, data):
 		super(PkgHeart, self).__init__()
 		self.data = {
@@ -158,6 +176,16 @@ class PkgHeart(PkgC2S):
 		}
 		self.data.update(data)
 		self.data['iostat'] = 0x00
+
+	@property
+	def cid(self):
+		return self.data['cid1']*1000+self.data['cid2']*100+self.data['cid3']*10+self.data['cid4']
+	@cid.setter
+	def cid(self, v):
+		self.data['cid1'] = int(v/1000)
+		self.data['cid2'] = int((v%1000)/100)
+		self.data['cid3'] = int((v%100)/10)
+		self.data['cid4'] = v%10
 
 	@property
 	def scnt(self):
@@ -176,14 +204,22 @@ class PkgHeart(PkgC2S):
 		self.data['stot1'] = int(v/100)
 		self.data['stot2'] = int((v%100)/10)
 		self.data['stot3'] = v%10
+	
+	@property
+	def counter(self):
+		return self.data['counter1']*10+self.data['counter2']
+	@counter.setter
+	def counter(self, v):
+		self.data['counter1'] = int(v/10)
+		self.data['counter2'] = v%10
 
 	def __str__(self):
 		return 'PkgHeart - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
-				self.data['cid'], self.data['ctype'], \
+				self.cid, self.data['ctype'], \
 				self.scnt, \
 				self.data['iostat'], \
 				self.stot, \
-				self.data['stat'], self.data['counter'])
+				self.data['stat'], self.counter)
 
 	def serialize(self):
 		tmp = []
