@@ -15,17 +15,26 @@
   <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
   <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
   <ItemGroup>
+    <Compile Include="crc.py" />
+    <Compile Include="db.py" />
     <Compile Include="gvars.py" />
     <Compile Include="log.py" />
     <Compile Include="main.py" />
+    <Compile Include="main2.py" />
+    <Compile Include="models.py" />
     <Compile Include="nethost.py" />
+    <Compile Include="nethost2.py" />
     <Compile Include="netstream.py" />
+    <Compile Include="netstream2.py" />
     <Compile Include="protoc.py" />
+    <Compile Include="setup.py" />
     <Compile Include="test.py" />
     <Compile Include="ref\events.py" />
     <Compile Include="ref\header.py" />
     <Compile Include="ref\netstream.py" />
     <Compile Include="ref\service.py" />
+    <Compile Include="test2.py" />
+    <Compile Include="test3.py" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ref" />

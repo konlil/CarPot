@@ -186,10 +186,13 @@ class nethost(asyncore.dispatcher):
 				data.scnt, data.stot, raw_data['stat'], data.counter)
 			pkg.writeToDB()
 
-			equip = models.ParkEquip(data.cid)
-			parkId = equip.getParkId()
-			if parkId:
-				park = models.ParkInfo(parkId, data.scnt)
-				park.writeToDB()
+			pkgIdent = models.ParkLogIdentity(data.cid, raw_data['ctype'], raw_data['iostat'], \
+				data.scnt, data.stot, raw_data['stat'], data.counter)
+			pkgIdent.writeToDB()
 
+			#equip = models.ParkEquip(data.cid)
+			#parkId = equip.getParkId()
+			#if parkId:
+			#	park = models.ParkInfo(parkId, data.scnt)
+			#	park.writeToDB()
 		log.debug('data processed.')

@@ -73,6 +73,44 @@ class TerminalHeart(Model):
 		else:
 			self.insertNewToDB()
 
+class ParkLogIdentity(Model):
+	TABLE_DEF = {
+		"id": "int IDENTITY(1,1) PRIMARY KEY",
+		"tid": "int NOT NULL",
+		"typ": "int NOT NULL",
+		"iostat":	"int NOT NULL",
+		"curr": "int NOT NULL",
+		"total": "int NOT NULL",
+		"stat": "int NOT NULL",
+		"cnter": "int NOT NULL",
+		'updateTime': "datetime",
+	}
+	tblname = 'park_LogIdent'
+	err = 0
+	def __init__(self, tid, typ, io, curr, tot, stat, counter):
+		super(ParkLogIdentity, self).__init__()
+		self.tid = tid
+		self.typ = typ
+		self.io = io
+		self.curr = curr
+		self.tot = tot
+		self.stat = stat
+		self.counter = counter
+
+	def insertNewToDB(self):
+		if self.err > 0:
+			return
+		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
+		cmd = "insert into %s(id,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
+				self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now)
+		db.obj.Exec(cmd)
+		db.obj.Commit()
+	
+	def writeToDB(self):
+		if self.err > 0:
+			return
+		self.insertNewToDB()
+
 class ParkLog(Model):
 	TABLE_DEF = {
 		"id": "int primary key",
@@ -146,7 +184,7 @@ class ParkLog(Model):
 class ParkEquip(Model):
 	tblname = 'park_equip'
 	def __init__(self, tid):
-		super(Terminal, self).__init__()
+		super(ParkEquip, self).__init__()
 		self.tid = tid
 		self.pid = None
 
@@ -196,6 +234,7 @@ class ParkInfo(Model):
 
 TerminalHeart.checkTable()
 ParkLog.checkTable()
+ParkLogIdentity.checkTable()
 
 if __name__ == "__main__":
         tid = 0x10

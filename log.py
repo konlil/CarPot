@@ -1,13 +1,14 @@
 #coding: gbk
 
 import logging
+from logging.handlers import RotatingFileHandler
 
 # create a logger
 logger = logging.getLogger('netlogger')
 logger.setLevel(logging.DEBUG)
 
 # create a handler to file
-fh = logging.RotatingFileHandler('net.log', maxBytes=100*1024*1024, backupCount=10)
+fh = RotatingFileHandler('net.log', maxBytes=100*1024*1024, backupCount=10)
 fh.setLevel(logging.DEBUG)
 
 # create a handler to console stream
