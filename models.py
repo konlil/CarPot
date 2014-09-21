@@ -101,8 +101,9 @@ class ParkLogIdentity(Model):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = "insert into %s(id,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
+		cmd = "insert into %s(tid,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
 				self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now)
+		#log.debug("insert logident: %s" % cmd)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 	
