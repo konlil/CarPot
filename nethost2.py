@@ -116,7 +116,7 @@ class nethost(asyncore.dispatcher):
 			#self.queue.append((gvars.NET_DATA, client.hid, client.tag, data))
 			self.process_event(client.hid, client.tag, data)
 		else:
-			log.critical('try to recv data from dead client: %s'%client.peername)
+			log.critical('try to recv data from dead client: %s'% client)
 
 	def on_client_close(self, client):
 		hid, tag = client.hid, client.tag

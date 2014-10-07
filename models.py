@@ -75,17 +75,17 @@ class TerminalHeart(Model):
 
 class ParkLogIdentity(Model):
 	TABLE_DEF = {
-		"id": "int IDENTITY(1,1) PRIMARY KEY",
+		"id": "unique identifier PRIMARY KEY",
 		"tid": "int NOT NULL",
 		"typ": "int NOT NULL",
-		"iostat":	"int NOT NULL",
+		"iostat": "int NOT NULL",
 		"curr": "int NOT NULL",
 		"total": "int NOT NULL",
 		"stat": "int NOT NULL",
 		"cnter": "int NOT NULL",
 		'updateTime': "datetime",
 	}
-	tblname = 'park_LogIdent'
+	tblname = 'park_LogUniqIdent'
 	err = 0
 	def __init__(self, tid, typ, io, curr, tot, stat, counter):
 		super(ParkLogIdentity, self).__init__()

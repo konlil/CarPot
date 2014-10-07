@@ -5,15 +5,15 @@ from logging.handlers import RotatingFileHandler
 
 # create a logger
 logger = logging.getLogger('netlogger')
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 # create a handler to file
 fh = RotatingFileHandler('net.log', maxBytes=100*1024*1024, backupCount=10)
-fh.setLevel(logging.DEBUG)
+fh.setLevel(logging.INFO)
 
 # create a handler to console stream
 ch = logging.StreamHandler()
-ch.setLevel(logging.DEBUG)
+ch.setLevel(logging.INFO)
 
 # define handler's format
 formatter = logging.Formatter('%(asctime)s\t[%(levelname)s]\t%(message)s')
