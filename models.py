@@ -2,6 +2,7 @@
 import db
 import datetime
 import log
+import config
 
 class Model(object):
 	TABLE_DEF = {}
@@ -75,25 +76,27 @@ class TerminalHeart(Model):
 
 class ParkLogIdentity(Model):
 	TABLE_DEF = {
-		"id": "unique identifier PRIMARY KEY",
+		"id": "uniqueidentifier PRIMARY KEY NOT NULL DEFAULT newid()",
 		"tid": "int NOT NULL",
+		"tdid": "int NOT NULL",
 		"typ": "int NOT NULL",
 		"iostat": "int NOT NULL",
 		"curr": "int NOT NULL",
-		"total": "int NOT NULL",
+		"dcnt": "int NOT NULL",
 		"stat": "int NOT NULL",
 		"cnter": "int NOT NULL",
 		'updateTime': "datetime",
 	}
-	tblname = 'park_LogUniqIdent'
+	tblname = 'park_LogUniqIdent3'
 	err = 0
-	def __init__(self, tid, typ, io, curr, tot, stat, counter):
+	def __init__(self, tid, tdid, typ, io, curr, dcnt, stat, counter):
 		super(ParkLogIdentity, self).__init__()
 		self.tid = tid
+		self.tdid = tdid
 		self.typ = typ
 		self.io = io
 		self.curr = curr
-		self.tot = tot
+		self.dcnt = dcnt
 		self.stat = stat
 		self.counter = counter
 
@@ -101,8 +104,8 @@ class ParkLogIdentity(Model):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = "insert into %s(tid,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
-				self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now)
+		cmd = "insert into %s(tid, tdid, typ,iostat,curr,dcnt,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
+				self.tblname, self.tid, self.tdid, self.typ, self.io, self.curr, self.dcnt, self.stat, self.counter, now)
 		#log.debug("insert logident: %s" % cmd)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
@@ -114,26 +117,41 @@ class ParkLogIdentity(Model):
 
 class ParkLog(Model):
 	TABLE_DEF = {
-		"id": "int primary key",
-		"typ": "int NOT NULL",
-		"iostat":	"int NOT NULL",
-		"curr": "int NOT NULL",
-		"total": "int NOT NULL",
-		"stat": "int NOT NULL",
-		"cnter": "int NOT NULL",
-		'updateTime': "datetime",
+		"id": "int primary key",			#终端ID(实际表示车场ID)
+		# "did": "int NOT NULL",				#子门ID
+		"typ": "int NOT NULL",				#车场类型
+		"curr": "int NOT NULL",				#当前剩余车位数
+		# "iostat":	"int NOT NULL",			#进出状态
+		# "dcnt": "int NOT NULL",				#变化数
+		"stat": "int NOT NULL",				#工作状态
+		# "cnter": "int NOT NULL",			#计数器
+		'updateTime': "datetime",			#更新时间
 	}
-	tblname = 'park_Log2'
+	tblname = 'park_Log3'
 	err = 0
-	def __init__(self, tid, typ, io, curr, tot, stat, counter):
+	def __init__(self, tid, tdid, typ, curr, io, dcnt, stat, counter):
 		super(ParkLog, self).__init__()
 		self.tid = tid
+		self.tdid = tdid
 		self.typ = typ
-		self.io = io
 		self.curr = curr
-		self.tot = tot
+		self.io = io
+		self.dcnt = dcnt 
 		self.stat = stat
 		self.counter = counter
+
+		if self.typ > 0x01:		#多门
+			last_curr = self.queryCurrent()
+			if self.io == 0x2D:		#减少
+				self.curr = last_curr - self.dcnt
+			elif self.io == 0x2B:    #增加
+				self.curr = last_curr + self.dcnt
+			elif self.io == 0xFF:
+				self.curr = curr     #直接用遥控器设置
+			elif self.io == 0x00:
+				pass
+			else:
+				log.critical("invalid park log data: tid: 0x%0X, tdid: 0x%0X, io: 0x%02X\n" % (tid, tdid, io))
 
 	# @classmethod
 	# def checkTable(cls):
@@ -156,12 +174,23 @@ class ParkLog(Model):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = "insert into %s(id,typ,iostat,curr,total,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
-				self.tblname, self.tid, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now)
+		cmd = "insert into %s(id, typ, curr, stat, updateTime) values(%d,%d,%d,%d,'%s');"%( \
+				self.tblname, self.tid, self.typ, self.curr, self.stat, now)
 		#cmd = "insert into %s(id,currCnt,updateTime) values(%d,%d,'%s');"%( \
 		#		self.tblname, self.tid, self.cnt, now)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
+
+	def queryCurrent(self):
+		if self.err > 0:
+			return
+		cmd = "select curr from %s where id=%d;"%(self.tblname, self.tid)
+		cursor = db.obj.Exec(cmd)
+		results = cursor.fetchone()
+		if results and results[0] > 0:
+			return results[0]
+		else:
+			log.critical("query current failed, tblname: %s, tid: 0x%0X" %( self.tblname, self.tid ))
 
 	def updateToDB(self):
 		if self.err > 0:
@@ -169,8 +198,8 @@ class ParkLog(Model):
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
 		#cmd = "update %s set currCnt=%d,updateTime='%s' where id=%d;"%( \
 		#	self.tblname, self.cnt, now, self.tid)
-		cmd = "update %s set typ=%d,iostat=%d, curr=%d, total=%d,stat=%d,cnter=%d,updateTime='%s' where id=%d;"%( \
-			self.tblname, self.typ, self.io, self.curr, self.tot, self.stat, self.counter, now, self.tid)
+		cmd = "update %s set typ=%d, curr=%d, stat=%d, updateTime='%s' where id=%d;"%( \
+			self.tblname, self.typ, self.curr, self.stat, now, self.tid)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 
@@ -203,15 +232,28 @@ class ParkEquip(Model):
 			return results[0]
 
 class ParkInfo(Model):
-	tblname = 'parkInfo'
-	def __init__(self, pid, scnt=None):
+	tblname = config.get('table', 'park_info_tbl', 'parkInfo')
+	cache_stot = {}
+	def __init__(self, pid):
 		super(ParkInfo, self).__init__()
 		self.pid = pid
-		self.scnt = scnt
+		self.stot = self.queryTotal()
 
-	# def __str__(self):
-	# 	return '[DBRecord]CarPark pid: %d, stot: %d, scnt: %d'%(self.pid, self.stot, self.scnt)
-	
+	def queryTotal(self):
+		#用cache缓存，减少数据库查询
+		if self.cache_stot.has_key(self.pid):
+			return self.cache_stot[self.pid]
+
+		column_name = config.get('table', 'park_info_column_total')
+		cmd = "select %s from %s where id=%d;"%(column_name, self.tblname, self.pid)
+		cursor = db.obj.Exec(cmd)
+		results = cursor.fetchone()
+		if results and results[0] > 0:
+			self.cache_stot[self.pid] = results[0]
+			return results[0]
+		else:
+			log.critical("query part info failed, tblname: %s, id: 0x%0X" %( self.tblname, self.pid ))
+
 	def checkInDB(self):
 		cmd = 'select count(*) from %s where Code=%d;'%(self.tblname, self.pid)
 		cursor = db.obj.Exec(cmd)
@@ -220,18 +262,6 @@ class ParkInfo(Model):
 			return True
 		else:
 			return False
-
-	def writeToDB(self):
-		if not ( self.scnt and self.pid ):
-			log.error('db: writeToDB failed, try write invalid parkinfo data (%s,%s) to db' % (str(self.pid), str(self.scnt)))
-			return
-
-		if self.checkInDB():
-			cmd = 'update %s set syberth=%d where pid=%d;'%(self.tblname, self.scnt, self.pid)
-			db.obj.Exec(cmd)
-			db.obj.Commit()
-		else:
-			log.error('db: writeToDB failed, record of park %d not found.' % self.pid)
 
 TerminalHeart.checkTable()
 ParkLog.checkTable()

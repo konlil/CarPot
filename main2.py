@@ -1,14 +1,11 @@
 #coding: gbk
 import asyncore
-import ConfigParser
 import log
 import win32api
+import config
 
-cf = ConfigParser.ConfigParser()
-cf.read('config.ini')
-
-SVR_IP = cf.get('service', 'svr_addr')
-SVR_PORT = cf.get('service', 'svr_port')
+SVR_IP = config.get('service', 'svr_addr')
+SVR_PORT = config.get('service', 'svr_port')
 log.info('read service config, ip:%s, port:%d'%(SVR_IP, int(SVR_PORT)))
 
 import nethost2 as nethost

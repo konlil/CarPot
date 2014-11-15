@@ -107,16 +107,13 @@ class nethost(asyncore.dispatcher):
 
 	def on_client_recv(self, client):
 		current = time.time()
-		if client.status() == gvars.NET_STATE_ESTABLISHED:
-			client.active = current
-			data = client.read_pkg()
-			if data is None:
-				return
-			#log.debug('recv pkg from client: %s, data: %s'%(client.peername, data))
-			#self.queue.append((gvars.NET_DATA, client.hid, client.tag, data))
-			self.process_event(client.hid, client.tag, data)
-		else:
-			log.critical('try to recv data from dead client: %s'% client)
+		client.active = current
+		data = client.read_pkg()
+		if data is None:
+			return
+		#log.debug('recv pkg from client: %s, data: %s'%(client.peername, data))
+		#self.queue.append((gvars.NET_DATA, client.hid, client.tag, data))
+		self.process_event(client.hid, client.tag, data)
 
 	def on_client_close(self, client):
 		hid, tag = client.hid, client.tag
@@ -182,13 +179,26 @@ class nethost(asyncore.dispatcher):
 			pkg = models.TerminalHeart(data.cid, raw_data['stat'])
 			pkg.writeToDB()
 		elif isinstance(data, protoc.PkgRep):
-			pkg = models.ParkLog(data.cid, raw_data['ctype'], raw_data['iostat'], \
-				data.scnt, data.stot, raw_data['stat'], data.counter)
+			pkg = models.ParkLog(data.cid, data.did, data.ctype, data.iostat, \
+				data.scnt, data.dcnt, data.stat, data.counter)
 			pkg.writeToDB()
 
-			pkgIdent = models.ParkLogIdentity(data.cid, raw_data['ctype'], raw_data['iostat'], \
-				data.scnt, data.stot, raw_data['stat'], data.counter)
+			pkgIdent = models.ParkLogIdentity(data.cid, data.did, data.ctype, data.iostat, \
+				data.scnt, data.dcnt, data.stat, data.counter)
 			pkgIdent.writeToDB()
+
+			if data.ctype > 0x01:    #多门
+				parkInfo = models.ParkInfo(pkg.tid)
+
+				pkgSum = protoc.PkgSum()
+				pkgSum.cid = pkg.tid
+				pkgSum.did = pkg.tdid
+				pkgSum.scnt = pkg.curr
+				pkgSum.stot = parkInfo.stot
+
+				log.debug('[send] %s' % pkgSum)
+				#发送回执数据
+				client.send_ack(pkgSum)
 
 			#equip = models.ParkEquip(data.cid)
 			#parkId = equip.getParkId()

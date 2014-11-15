@@ -134,7 +134,6 @@ class netstream(asyncore.dispatcher):
 		data = pkg.serialize()
 		self.__send_raw(data)
 
-	def send_ack(self, ack):
-		pkg = protoc.PkgSum(ack)
+	def send_ack(self, pkg):
 		data = pkg.serialize()
 		self.__send_raw(data)
