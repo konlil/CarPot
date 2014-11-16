@@ -94,7 +94,7 @@ class PkgC2S(object):
 #Ö÷¶¯°ü
 class PkgRep(PkgC2S):
 	FRAME_TYPE = 0xAA
-	FMT = '!HB4BBB4BB2BB2BH'
+	FMT = '!HB4BBB4BB2B4BB2BH'
 	HEADER_FMT = '!HB'
 	TUPLE_TYPE = namedtuple('TUPLE_TYPE', \
 		'hdr ftype cid1 cid2 cid3 cid4 ctype did scnt1 scnt2 scnt3 scnt4 iostat dcnt1 dcnt2 stot1 stot2 stot3 stot4 stat counter1 counter2 fend')

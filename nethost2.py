@@ -194,7 +194,10 @@ class nethost(asyncore.dispatcher):
 				pkgSum.cid = pkg.tid
 				pkgSum.did = pkg.tdid
 				pkgSum.scnt = pkg.curr
-				pkgSum.stot = pkg.stot
+				pkgSum.stot = data.stot
+
+				if pkgSum.scnt < 0:
+					pkgSum.scnt = 0
 
 				log.debug('[send] %s' % pkgSum)
 				#发送回执数据
