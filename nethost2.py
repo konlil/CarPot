@@ -199,7 +199,8 @@ class nethost(asyncore.dispatcher):
 				if pkgSum.scnt < 0:
 					pkgSum.scnt = 0
 
-				log.debug('[send] %s' % pkgSum)
+				# if pkg.tid == 6000:
+				# 	log.error('[send]6000----------------- %s' % pkgSum)
 				#发送回执数据
 				client.send_ack(pkgSum)
 

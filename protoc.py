@@ -138,7 +138,7 @@ class PkgRep(PkgC2S):
 	@iostat.setter
 	def iostat(self, v):
 		self.data['iostat'] = v
-
+		
 	@property
 	def stat(self):
 		return self.data['stat']

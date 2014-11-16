@@ -23,6 +23,7 @@ class netstream(asyncore.dispatcher):
 		self.state = gvars.NET_STATE_STOP
 		self.on_recv = None
 		self.on_close = None
+		self.peername = '<empty-peername>'
 
 	#connect the remote server
 	def connect_ex(self, address, port):
@@ -54,7 +55,7 @@ class netstream(asyncore.dispatcher):
 
 	def handle_read(self):
 		rdata = self.recv(1024)
-		log.debug('from %s: %s'%(self, hex_dump(rdata)))
+		log.debug('from %s: %s'%(self.peername, hex_dump(rdata)))
 		self.recv_buf = self.recv_buf + rdata
 		if self.on_recv:
 			self.on_recv(self)
@@ -62,6 +63,7 @@ class netstream(asyncore.dispatcher):
 	def handle_write(self):
 		# print 'handle_write', self.send_buf
 		wsize = self.send(self.send_buf)
+		log.debug('handle_write: writed: %d, [%s]' % (wsize, hex_dump(self.send_buf[:wsize])))
 		self.send_buf = self.send_buf[wsize:]
 
 	def writable(self):
@@ -93,7 +95,7 @@ class netstream(asyncore.dispatcher):
 			check_result, proto_class, err = protoc.check_recv(self.recv_buf)
 
 		if bad_pkg_bytes:
-			log.critical('detect bad package, ignored %d bytes' % bad_pkg_bytes)
+			log.critical('detect bad package, ignored %d bytes, peer: %s' % (bad_pkg_bytes, self.peername))
 
 		if err == protoc.PKG_OK:
 			# log.debug('peek package:: %s, %s' % (str(check_result), str(proto_class)))
@@ -137,4 +139,5 @@ class netstream(asyncore.dispatcher):
 
 	def send_ack(self, pkg):
 		data = pkg.serialize()
+		log.info('send to %s: %s'%(self.peername, hex_dump(data)))
 		self.__send_raw(data)

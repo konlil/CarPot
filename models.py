@@ -129,7 +129,7 @@ class ParkLog(Model):
 	}
 	tblname = 'park_Log3'
 	err = 0
-	def __init__(self, tid, tdid, typ, curr, io, dcnt, stat, counter):
+	def __init__(self, tid, tdid, typ, io, curr, dcnt, stat, counter):
 		super(ParkLog, self).__init__()
 		self.tid = tid
 		self.tdid = tdid
@@ -151,7 +151,8 @@ class ParkLog(Model):
 			elif self.io == 0x00:
 				pass
 			else:
-				log.critical("invalid park log data: tid: 0x%0X, tdid: 0x%0X, io: 0x%02X\n" % (tid, tdid, io))
+				log.critical("invalid park log data: tid: 0x%0X, tdid: 0x%0X, io: 0x%02X" % (tid, tdid, io))
+				log.critical("invalid: tid: 0x%X, tdid: 0x%X, type: 0x%X, curr: 0x%X, io: 0x%X, dcnt: 0x%X, stat: 0x%X, counter: 0x%X" % (tid, tdid, typ, curr, io, dcnt, stat, counter))
 
 	# @classmethod
 	# def checkTable(cls):
