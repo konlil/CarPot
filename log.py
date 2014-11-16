@@ -2,18 +2,29 @@
 
 import logging
 from logging.handlers import RotatingFileHandler
+import config
+
+log_level_dict = {
+	'DEBUG': logging.DEBUG,
+	'INFO': logging.INFO,
+	'WARN': logging.WARN,
+	'ERROR': logging.ERROR,
+	'CRITICAL': logging.CRITICAL,
+}
+log_level_def = config.get('debug', 'log_level', 'INFO')
+log_level = log_level_dict.get(log_level_def)
 
 # create a logger
 logger = logging.getLogger('netlogger')
-logger.setLevel(logging.INFO)
+logger.setLevel(log_level)
 
 # create a handler to file
 fh = RotatingFileHandler('net.log', maxBytes=100*1024*1024, backupCount=10)
-fh.setLevel(logging.INFO)
+fh.setLevel(log_level)
 
 # create a handler to console stream
 ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+ch.setLevel(log_level)
 
 # define handler's format
 formatter = logging.Formatter('%(asctime)s\t[%(levelname)s]\t%(message)s')
@@ -22,6 +33,8 @@ ch.setFormatter(formatter)
 
 logger.addHandler(fh)
 logger.addHandler(ch)
+
+logger.debug('log level set at: %s' % log_level_def)
 
 def info(s):
 	logger.info(s)

@@ -117,15 +117,15 @@ class ParkLogIdentity(Model):
 
 class ParkLog(Model):
 	TABLE_DEF = {
-		"id": "int primary key",			#ç»ˆç«¯ID(å®é™…è¡¨ç¤ºè½¦åœºID)
-		# "did": "int NOT NULL",				#å­é—¨ID
-		"typ": "int NOT NULL",				#è½¦åœºç±»å‹
-		"curr": "int NOT NULL",				#å½“å‰å‰©ä½™è½¦ä½æ•°
-		# "iostat":	"int NOT NULL",			#è¿›å‡ºçŠ¶æ€
-		# "dcnt": "int NOT NULL",				#å˜åŒ–æ•°
-		"stat": "int NOT NULL",				#å·¥ä½œçŠ¶æ€
-		# "cnter": "int NOT NULL",			#è®¡æ•°å™¨
-		'updateTime': "datetime",			#æ›´æ–°æ—¶é—´
+		"id": "int primary key",			#ÖÕ¶ËID(Êµ¼Ê±íÊ¾³µ³¡ID)
+		# "did": "int NOT NULL",				#×ÓÃÅID
+		"typ": "int NOT NULL",				#³µ³¡ÀàĞÍ
+		"curr": "int NOT NULL",				#µ±Ç°Ê£Óà³µÎ»Êı
+		# "iostat":	"int NOT NULL",			#½ø³ö×´Ì¬
+		# "dcnt": "int NOT NULL",				#±ä»¯Êı
+		"stat": "int NOT NULL",				#¹¤×÷×´Ì¬
+		# "cnter": "int NOT NULL",			#¼ÆÊıÆ÷
+		'updateTime': "datetime",			#¸üĞÂÊ±¼ä
 	}
 	tblname = 'park_Log3'
 	err = 0
@@ -140,14 +140,14 @@ class ParkLog(Model):
 		self.stat = stat
 		self.counter = counter
 
-		if self.typ > 0x01:		#å¤šé—¨
+		if self.typ > 0x01:		#¶àÃÅ
 			last_curr = self.queryCurrent()
-			if self.io == 0x2D:		#å‡å°‘
+			if self.io == 0x2D:		#¼õÉÙ
 				self.curr = last_curr - self.dcnt
-			elif self.io == 0x2B:    #å¢åŠ 
+			elif self.io == 0x2B:    #Ôö¼Ó
 				self.curr = last_curr + self.dcnt
 			elif self.io == 0xFF:
-				self.curr = curr     #ç›´æ¥ç”¨é¥æ§å™¨è®¾ç½®
+				self.curr = curr     #Ö±½ÓÓÃÒ£¿ØÆ÷ÉèÖÃ
 			elif self.io == 0x00:
 				pass
 			else:
@@ -240,7 +240,7 @@ class ParkInfo(Model):
 		self.stot = self.queryTotal()
 
 	def queryTotal(self):
-		#ç”¨cacheç¼“å­˜ï¼Œå‡å°‘æ•°æ®åº“æŸ¥è¯¢
+		#ÓÃcache»º´æ£¬¼õÉÙÊı¾İ¿â²éÑ¯
 		if self.cache_stot.has_key(self.pid):
 			return self.cache_stot[self.pid]
 
@@ -253,6 +253,7 @@ class ParkInfo(Model):
 			return results[0]
 		else:
 			log.critical("query part info failed, tblname: %s, id: 0x%0X" %( self.tblname, self.pid ))
+			return 0
 
 	def checkInDB(self):
 		cmd = 'select count(*) from %s where Code=%d;'%(self.tblname, self.pid)

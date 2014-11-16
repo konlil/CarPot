@@ -27,7 +27,7 @@ def hex_dump(buf):
 	return tmp
 def check_recv(buf):
 	# classes = [PkgRep, PkgHeart]
-	classes = [PkgRep,]
+	classes = [PkgRep, PkgManual]
 	err = PKG_ERR_UNKNOWN
 	err = PKG_ERR_UNKNOWN
 	for c in classes:
@@ -93,7 +93,7 @@ class PkgC2S(object):
 		return cls.TUPLE_TYPE._asdict(obj)
 #主动包
 class PkgRep(PkgC2S):
-	FRAME_TYPE = 0x55
+	FRAME_TYPE = 0xAA
 	FMT = '!HB4BBB4BB2BB2BH'
 	HEADER_FMT = '!HB'
 	TUPLE_TYPE = namedtuple('TUPLE_TYPE', \
@@ -202,6 +202,9 @@ class PkgRep(PkgC2S):
 			else:
 				tmp.append(self.data[item])
 		return struct.pack(self.FMT, *tmp)
+
+class PkgManual(PkgRep):
+	FRAME_TYPE = 0x55
 
 #心跳包
 class PkgHeart(PkgC2S):

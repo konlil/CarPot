@@ -190,7 +190,7 @@ class nethost(asyncore.dispatcher):
 			if data.ctype > 0x01:    #∂‡√≈
 				#parkInfo = models.ParkInfo(pkg.tid)
 
-				pkgSum = protoc.PkgSum()
+				pkgSum = protoc.PkgSum({})
 				pkgSum.cid = pkg.tid
 				pkgSum.did = pkg.tdid
 				pkgSum.scnt = pkg.curr

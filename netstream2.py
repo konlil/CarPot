@@ -96,6 +96,7 @@ class netstream(asyncore.dispatcher):
 			log.critical('detect bad package, ignored %d bytes' % bad_pkg_bytes)
 
 		if err == protoc.PKG_OK:
+			# log.debug('peek package:: %s, %s' % (str(check_result), str(proto_class)))
 			return (check_result, proto_class)
 		return None
 
