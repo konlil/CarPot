@@ -188,13 +188,13 @@ class nethost(asyncore.dispatcher):
 			pkgIdent.writeToDB()
 
 			if data.ctype > 0x01:    #多门
-				parkInfo = models.ParkInfo(pkg.tid)
+				#parkInfo = models.ParkInfo(pkg.tid)
 
 				pkgSum = protoc.PkgSum()
 				pkgSum.cid = pkg.tid
 				pkgSum.did = pkg.tdid
 				pkgSum.scnt = pkg.curr
-				pkgSum.stot = parkInfo.stot
+				pkgSum.stot = pkg.stot
 
 				log.debug('[send] %s' % pkgSum)
 				#发送回执数据

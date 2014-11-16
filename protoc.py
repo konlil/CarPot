@@ -97,7 +97,7 @@ class PkgRep(PkgC2S):
 	FMT = '!HB4BBB4BB2BB2BH'
 	HEADER_FMT = '!HB'
 	TUPLE_TYPE = namedtuple('TUPLE_TYPE', \
-		'hdr ftype cid1 cid2 cid3 cid4 ctype did scnt1 scnt2 scnt3 scnt4 iostat dcnt1 dcnt2 stat counter1 counter2 fend')
+		'hdr ftype cid1 cid2 cid3 cid4 ctype did scnt1 scnt2 scnt3 scnt4 iostat dcnt1 dcnt2 stot1 stot2 stot3 stot4 stat counter1 counter2 fend')
 	def __init__(self, data):
 		super(PkgRep, self).__init__()
 		self.data = {
@@ -157,6 +157,16 @@ class PkgRep(PkgC2S):
 		self.data['scnt4'] = v%10
 
 	@property
+	def stot(self):
+		return self.data['stot1']*1000+self.data['stot2']*100+self.data['stot3']*10+self.data['stot4']
+	@stot.setter
+	def stot(self, v):
+		self.data['stot1'] = int(v/1000)
+		self.data['stot2'] = int((v%1000)/100)
+		self.data['stot3'] = int((v%100)/10)
+		self.data['stot4'] = v%10
+
+	@property
 	def dcnt(self):
 		return self.data['dcnt1']*10+self.data['dcnt2']
 	@dcnt.setter
@@ -173,12 +183,12 @@ class PkgRep(PkgC2S):
 		self.data['counter2'] = v%10
 
 	def __str__(self):
-		return 'PkgRep - id:0x%04X, did: 0x%01X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
-				self.cid, self.did, self.data['ctype'], \
+		return 'PkgRep - id:0x%04X, did: 0x%01X, type:0x%02X, cnt:0x%04X, io:0x%02X, dcnt: 0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
+				self.cid, self.did, self.ctype, \
 				self.scnt, \
-				self.data['iostat'], \
-				self.dcnt, \
-				self.data['stat'], self.counter )
+				self.iostat, \
+				self.dcnt, self.stot,\
+				self.stat, self.counter )
 
 	def serialize(self):
 		tmp = []
