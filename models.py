@@ -188,7 +188,7 @@ class ParkLog(Model):
 		cmd = "select curr from %s where id=%d;"%(self.tblname, self.tid)
 		cursor = db.obj.Exec(cmd)
 		results = cursor.fetchone()
-		if results and results[0] > 0:
+		if results and len(results) > 0:
 			return results[0]
 		else:
 			log.critical("query current failed, tblname: %s, tid: 0x%0X" %( self.tblname, self.tid ))
