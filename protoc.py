@@ -46,6 +46,27 @@ def check_recv(buf):
 			return (None, None, err)
 	return (None, None, err)
 
+def format_tuple_def(proto):
+	rtn = []
+	for v in proto:
+		if v[1] > 1:
+			for i in xrange(v[1]):
+				rtn.append('%s%d'%(v[0], i+1))
+		elif v[1] == 1:
+			rtn.append(v[0])
+		else:
+			pass
+	return ' '.join(rtn)
+
+def getter_4_bytes(pkg, k):
+	return pkg.data['%s1'%k]*1000+pkg.data['%s2'%k]*100+pkg.data['%s3'%k]*10+pkg.data['%s4'%k]
+
+def setter_4_bytes(pkg, k, v):
+	pkg.data['%s1'%k] = int(v/1000)
+	pkg.data['%s2'%k] = int((v%1000)/100)
+	pkg.data['%s3'%k] = int((v%100)/10)
+	pkg.data['%s4'%k] = v%10
+
 class PkgC2S(object):
 	FRAME_TYPE = None
 	FRAME_SIZE = None
@@ -94,10 +115,26 @@ class PkgC2S(object):
 #主动包
 class PkgRep(PkgC2S):
 	FRAME_TYPE = 0xAA
-	FMT = '!HB4BBB4BB2B4BB2BH'
-	HEADER_FMT = '!HB'
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', \
-		'hdr ftype cid1 cid2 cid3 cid4 ctype did scnt1 scnt2 scnt3 scnt4 iostat dcnt1 dcnt2 stot1 stot2 stot3 stot4 stat counter1 counter2 fend')
+	# FMT = '!HB4BBB4BB2B4BB2BH'
+	# HEADER_FMT = '!HB'
+	PROTOC_DEF = (
+		('hdr', 	1,	'H'),		#帧头
+		('ftype', 	1,  'B'),		#帧类型
+		('cid', 	4,  'B'),		#车场ID
+		('ctype',	1, 	'B'),		#车场类型
+		('did',		1,  'B'),		#子门编号
+		('scnt',	4,  'B'),		#当前剩余车位
+		('stot',	4, 	'B'),		#总车位数
+		('sdec',	4, 	'B'),		#车辆进数目
+		('sinc',	4, 	'B'),		#车辆出数目
+		('stat',	1,	'B'),		#工作状态
+		('counter', 2, 	'B'),		#帧计数器
+		('fend',	1,	'H'),		#帧结尾
+	)
+	FMT = '!' + ''.join(['%d%s'%(v[1],v[2]) for v in PROTOC_DEF])
+	HEADER_FMT = '!' + ''.join([ '%d%s'%(v[1],v[2]) for v in PROTOC_DEF[:2] ])
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', format_tuple_def(PROTOC_DEF))
+
 	def __init__(self, data):
 		super(PkgRep, self).__init__()
 		self.data = {
@@ -107,15 +144,21 @@ class PkgRep(PkgC2S):
 		}
 		self.data.update(data)
 
+	def getter_4_bytes(self, k):
+		return self.data['%s1'%k]*1000+self.data['%s2'%k]*100+self.data['%s3'%k]*10+self.data['%s4'%k]
+
+	def setter_4_bytes(self, k, v):
+		self.data['%s1'%k] = int(v/1000)
+		self.data['%s2'%k] = int((v%1000)/100)
+		self.data['%s3'%k] = int((v%100)/10)
+		self.data['%s4'%k] = v%10
+
 	@property
 	def cid(self):
-		return self.data['cid1']*1000+self.data['cid2']*100+self.data['cid3']*10+self.data['cid4']
+		return self.getter_4_bytes('cid')
 	@cid.setter
 	def cid(self, v):
-		self.data['cid1'] = int(v/1000)
-		self.data['cid2'] = int((v%1000)/100)
-		self.data['cid3'] = int((v%100)/10)
-		self.data['cid4'] = v%10
+		self.setter_4_bytes('cid', v)
 
 	@property
 	def did(self):
@@ -132,12 +175,20 @@ class PkgRep(PkgC2S):
 	def ctype(self, v):
 		self.data['ctype'] = v
 
-	@property
-	def iostat(self):
-		return self.data['iostat']
-	@iostat.setter
-	def iostat(self, v):
-		self.data['iostat'] = v
+	@property 
+	def sinc(self):
+		return self.getter_4_bytes('sinc')
+	@sinc.setter
+	def sinc(self, v):
+		self.setter_4_bytes('sinc', v)
+
+	@property 
+	def sdec(self):
+		return self.getter_4_bytes('sdec')
+
+	@sdec.setter
+	def sdec(self, v):
+		self.setter_4_bytes('sdec', v)
 		
 	@property
 	def stat(self):
@@ -148,23 +199,17 @@ class PkgRep(PkgC2S):
 
 	@property
 	def scnt(self):
-		return self.data['scnt1']*1000+self.data['scnt2']*100+self.data['scnt3']*10+self.data['scnt4']
+		return getter_4_bytes(self, 'scnt')
 	@scnt.setter
 	def scnt(self, v):
-		self.data['scnt1'] = int(v/1000)
-		self.data['scnt2'] = int((v%1000)/100)
-		self.data['scnt3'] = int((v%100)/10)
-		self.data['scnt4'] = v%10
+		setter_4_bytes(self, 'scnt', v)
 
 	@property
 	def stot(self):
-		return self.data['stot1']*1000+self.data['stot2']*100+self.data['stot3']*10+self.data['stot4']
+		return getter_4_bytes(self, 'stot')
 	@stot.setter
 	def stot(self, v):
-		self.data['stot1'] = int(v/1000)
-		self.data['stot2'] = int((v%1000)/100)
-		self.data['stot3'] = int((v%100)/10)
-		self.data['stot4'] = v%10
+		setter_4_bytes(self, 'stot')
 
 	@property
 	def dcnt(self):
@@ -182,14 +227,6 @@ class PkgRep(PkgC2S):
 		self.data['counter1'] = int(v/10)
 		self.data['counter2'] = v%10
 
-	def __str__(self):
-		return 'PkgRep - id:0x%04X, did: 0x%01X, type:0x%02X, cnt:0x%04X, io:0x%02X, dcnt: 0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
-				self.cid, self.did, self.ctype, \
-				self.scnt, \
-				self.iostat, \
-				self.dcnt, self.stot,\
-				self.stat, self.counter )
-
 	def serialize(self):
 		tmp = []
 		for item in self.TUPLE_TYPE._fields:
@@ -203,92 +240,106 @@ class PkgRep(PkgC2S):
 				tmp.append(self.data[item])
 		return struct.pack(self.FMT, *tmp)
 
+#终端初始化或修正车场当前车位数，此时仅有当前剩余车位数有效
 class PkgManual(PkgRep):
 	FRAME_TYPE = 0x55
 
-#心跳包
-class PkgHeart(PkgC2S):
-	FRAME_TYPE = 0xAA
-	FMT = '!HB4BB3BB3BB2BH'
-	HEADER_FMT = '!HB'
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid1 cid2 cid3 cid4 ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter1 counter2 fend')
-	def __init__(self, data):
-		super(PkgHeart, self).__init__()
-		self.data = {
-			'hdr': 		HEAD_C2S,
-			'ftype':	self.FRAME_TYPE,
-			'fend':		END_FRAME,
-		}
-		self.data.update(data)
-		self.data['iostat'] = 0x00
+# #心跳包
+# class PkgHeart(PkgC2S):
+# 	FRAME_TYPE = 0xAA
+# 	FMT = '!HB4BB3BB3BB2BH'
+# 	HEADER_FMT = '!HB'
+# 	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid1 cid2 cid3 cid4 ctype scnt1 scnt2 scnt3 iostat stot1 stot2 stot3 stat counter1 counter2 fend')
+# 	def __init__(self, data):
+# 		super(PkgHeart, self).__init__()
+# 		self.data = {
+# 			'hdr': 		HEAD_C2S,
+# 			'ftype':	self.FRAME_TYPE,
+# 			'fend':		END_FRAME,
+# 		}
+# 		self.data.update(data)
+# 		self.data['iostat'] = 0x00
 
-	@property
-	def cid(self):
-		return self.data['cid1']*1000+self.data['cid2']*100+self.data['cid3']*10+self.data['cid4']
-	@cid.setter
-	def cid(self, v):
-		self.data['cid1'] = int(v/1000)
-		self.data['cid2'] = int((v%1000)/100)
-		self.data['cid3'] = int((v%100)/10)
-		self.data['cid4'] = v%10
+# 	@property
+# 	def cid(self):
+# 		return self.data['cid1']*1000+self.data['cid2']*100+self.data['cid3']*10+self.data['cid4']
+# 	@cid.setter
+# 	def cid(self, v):
+# 		self.data['cid1'] = int(v/1000)
+# 		self.data['cid2'] = int((v%1000)/100)
+# 		self.data['cid3'] = int((v%100)/10)
+# 		self.data['cid4'] = v%10
 
-	@property
-	def scnt(self):
-		return self.data['scnt1']*100+self.data['scnt2']*10+self.data['scnt3']
-	@scnt.setter
-	def scnt(self, v):
-		self.data['scnt1'] = int(v/100)
-		self.data['scnt2'] = int((v%100)/10)
-		self.data['scnt3'] = v%10
+# 	@property
+# 	def scnt(self):
+# 		return self.data['scnt1']*100+self.data['scnt2']*10+self.data['scnt3']
+# 	@scnt.setter
+# 	def scnt(self, v):
+# 		self.data['scnt1'] = int(v/100)
+# 		self.data['scnt2'] = int((v%100)/10)
+# 		self.data['scnt3'] = v%10
 
-	@property
-	def stot(self):
-		return self.data['stot1']*100+self.data['stot2']*10+self.data['stot3']
-	@stot.setter
-	def stot(self, v):
-		self.data['stot1'] = int(v/100)
-		self.data['stot2'] = int((v%100)/10)
-		self.data['stot3'] = v%10
+# 	@property
+# 	def stot(self):
+# 		return self.data['stot1']*100+self.data['stot2']*10+self.data['stot3']
+# 	@stot.setter
+# 	def stot(self, v):
+# 		self.data['stot1'] = int(v/100)
+# 		self.data['stot2'] = int((v%100)/10)
+# 		self.data['stot3'] = v%10
 	
-	@property
-	def counter(self):
-		return self.data['counter1']*10+self.data['counter2']
-	@counter.setter
-	def counter(self, v):
-		self.data['counter1'] = int(v/10)
-		self.data['counter2'] = v%10
+# 	@property
+# 	def counter(self):
+# 		return self.data['counter1']*10+self.data['counter2']
+# 	@counter.setter
+# 	def counter(self, v):
+# 		self.data['counter1'] = int(v/10)
+# 		self.data['counter2'] = v%10
 
-	def __str__(self):
-		return 'PkgHeart - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
-				self.cid, self.data['ctype'], \
-				self.scnt, \
-				self.data['iostat'], \
-				self.stot, \
-				self.data['stat'], self.counter)
+# 	def __str__(self):
+# 		return 'PkgHeart - id:0x%04X, type:0x%02X, cnt:0x%04X, io:0x%02X, tot:0x%04X, stat:0x%02X, loop:0x%02X'% ( \
+# 				self.cid, self.data['ctype'], \
+# 				self.scnt, \
+# 				self.data['iostat'], \
+# 				self.stot, \
+# 				self.data['stat'], self.counter)
 
-	def serialize(self):
-		tmp = []
-		for item in self.TUPLE_TYPE._fields:
-			if item == 'hdr':
-				tmp.append(HEAD_C2S)
-			elif item == 'ftype':
-				tmp.append(self.FRAME_TYPE)
-			elif item == 'fend':
-				tmp.append(END_FRAME)
-			else:
-				tmp.append(self.data[item])
-		return struct.pack(self.FMT, *tmp)
+# 	def serialize(self):
+# 		tmp = []
+# 		for item in self.TUPLE_TYPE._fields:
+# 			if item == 'hdr':
+# 				tmp.append(HEAD_C2S)
+# 			elif item == 'ftype':
+# 				tmp.append(self.FRAME_TYPE)
+# 			elif item == 'fend':
+# 				tmp.append(END_FRAME)
+# 			else:
+# 				tmp.append(self.data[item])
+# 		return struct.pack(self.FMT, *tmp)
 
+#服务器向多门终端发送剩余车位数
 class PkgSum(object):
 	FRAME_TYPE = 0xDD
-	FMT = '!HB4BB4B4BBBH'
-	HEADER_FMT = '!HB'
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid1 cid2 cid3 cid4 did scnt1 scnt2 scnt3 scnt4 stot1 stot2 stot3 stot4 counter hour fend')
+	PROTOC_DEF = (
+		('hdr', 	1,	'H'),		#帧头
+		('ftype', 	1,  'B'),		#帧类型
+		('cid', 	1,  'I'),		#车场ID
+		('did',		1,  'B'),		#子门编号
+		('scnt',	1,  'I'),		#当前剩余车位
+		('stot',	1, 	'I'),		#车位总数
+		('second',	1, 	'B'),		#帧发送当前时间的分钟部分
+		('hour',	1, 	'B'),		#帧发送当前时间的小时部分
+		('fend',	1,	'H'),		#帧结尾
+	)
+	FMT = '!' + ''.join(['%d%s'%(v[1],v[2]) for v in PROTOC_DEF])
+	HEADER_FMT = '!' + ''.join([ '%d%s'%(v[1],v[2]) for v in PROTOC_DEF[:2] ])
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', format_tuple_def(PROTOC_DEF))
+
 	def __init__(self, data):
 		self.data = {
 			'hdr': 		HEAD_S2C,
 			'ftype':	self.FRAME_TYPE,
-			'counter':  time.localtime().tm_min,
+			'second':  time.localtime().tm_min,
 			'hour': 	time.localtime().tm_hour,
 			'fend':		END_FRAME,
 		}
@@ -296,13 +347,13 @@ class PkgSum(object):
 
 	@property
 	def cid(self):
-		return self.data['cid1']*1000+self.data['cid2']*100+self.data['cid3']*10+self.data['cid4']
+		#return getter_4_bytes(self, 'cid')
+		return self.data['cid']
+
 	@cid.setter
 	def cid(self, v):
-		self.data['cid1'] = int(v/1000)
-		self.data['cid2'] = int((v%1000)/100)
-		self.data['cid3'] = int((v%100)/10)
-		self.data['cid4'] = v%10
+		#setter_4_bytes(self, 'cid', v)
+		self.data['cid'] = v
 
 	@property
 	def did(self):
@@ -314,37 +365,76 @@ class PkgSum(object):
 
 	@property
 	def scnt(self):
-		return self.data['scnt1']*1000+self.data['scnt2']*100+self.data['scnt3']*10+self.data['scnt4']
+		# return getter_4_bytes(self, 'scnt')
+		return self.data['scnt']
+
 	@scnt.setter
 	def scnt(self, v):
-		self.data['scnt1'] = int(v/1000)
-		self.data['scnt2'] = int((v%1000)/100)
-		self.data['scnt3'] = int((v%100)/10)
-		self.data['scnt4'] = v%10
+		# setter_4_bytes(self, 'scnt', v)
+		self.data['scnt'] = v
 
 	@property
 	def stot(self):
-		return self.data['stot1']*1000+self.data['stot2']*100+self.data['stot3']*10+self.data['stot4']
+		return self.data['stot']
+		# return getter_4_bytes(self, 'stot')
 	@stot.setter
 	def stot(self, v):
-		self.data['stot1'] = int(v/1000)
-		self.data['stot2'] = int((v%1000)/100)
-		self.data['stot3'] = int((v%100)/10)
-		self.data['stot4'] = v%10
+		self.data['stot'] = v
+		# setter_4_bytes(self, 'stot', v)
 	
 	@property
-	def counter(self):
-		return self.data['counter']
-	@counter.setter
-	def counter(self, v):
-		self.data['counter'] = v
+	def second(self):
+		return self.data['second']
+	@second.setter
+	def second(self, v):
+		self.data['second'] = v
 
-	def __str__(self):
-		return 'PkgSum - id:0x%04X, did: 0x%01X, cnt:0x%X(%d), tot:0x%X(%d), counter:0x%01X'% ( \
-				self.cid, self.did, \
-				self.scnt, self.scnt,\
-				self.stot, self.stot,\
-				self.counter )
+	# def __str__(self):
+	# 	return 'PkgSum - id:0x%04X, did: 0x%01X, cnt:0x%X(%d), tot:0x%X(%d), counter:0x%01X'% ( \
+	# 			self.cid, self.did, \
+	# 			self.scnt, self.scnt,\
+	# 			self.stot, self.stot,\
+	# 			self.counter )
+
+	def serialize(self):
+		tmp = []
+		for item in self.TUPLE_TYPE._fields:
+			if item == 'hdr':
+				tmp.append(HEAD_S2C)
+			elif item == 'ftype':
+				tmp.append(self.FRAME_TYPE)
+			elif item == 'fend':
+				tmp.append(END_FRAME)
+			else:
+				tmp.append(self.data[item])
+		return struct.pack(self.FMT, *tmp)
+
+class PkgReset(object):
+	FRAME_TYPE = 0x55
+	PROTOC_DEF = (
+		('hdr', 	1,	'H'),		#帧头
+		('ftype', 	1,  'B'),		#帧类型
+		('cid', 	1,  'I'),		#车场ID
+		('did',		1,  'B'),		#子门编号
+		('cmd',		1,  'B'),		#帧命令
+		('counter',	1, 	'B'),		#剩余车位数
+		('fend',	1,	'H'),		#帧结尾
+	)
+	FMT = '!' + ''.join(['%d%s'%(v[1],v[2]) for v in PROTOC_DEF])
+	HEADER_FMT = '!' + ''.join([ '%d%s'%(v[1],v[2]) for v in PROTOC_DEF[:2] ])
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', format_tuple_def(PROTOC_DEF))
+
+	def __init__(self, data):
+		self.data = {
+			'hdr': 		HEAD_S2C,
+			'ftype':	self.FRAME_TYPE,
+			'cid':		0,
+			'did':		0,
+			'cmd':		0,
+			'counter':	0,
+			'fend':		END_FRAME,
+		}
+		self.data.update(data)
 
 	def serialize(self):
 		tmp = []
@@ -361,11 +451,20 @@ class PkgSum(object):
 
 class PkgCmd(object):
 	FRAME_TYPE = 0xBB
-	FRAME_SIZE = 17
-	FMT = '!HBHBIHHBH'
-	HEADER_FMT = '!HB'
-	HEADER_SIZE = 3
-	TUPLE_TYPE = namedtuple('TUPLE_TYPE', 'hdr ftype cid ctype ip port stot cksum fend')
+	PROTOC_DEF = (
+		('hdr', 	1,	'H'),		#帧头
+		('ftype', 	1,  'B'),		#帧类型
+		('cid', 	1,  'I'),		#车场ID
+		('did',		1,  'B'),		#子门编号
+		('ip',		4,  'B'),		#ip
+		('scnt',	1, 	'I'),		#剩余车位数
+		('stot',	1, 	'I'),		#车位总数
+		('fend',	1,	'H'),		#帧结尾
+	)
+	FMT = '!' + ''.join(['%d%s'%(v[1],v[2]) for v in PROTOC_DEF])
+	HEADER_FMT = '!' + ''.join([ '%d%s'%(v[1],v[2]) for v in PROTOC_DEF[:2] ])
+	TUPLE_TYPE = namedtuple('TUPLE_TYPE', format_tuple_def(PROTOC_DEF))
+
 	def __init__(self, data):
 		self.data = {
 			'hdr': 		HEAD_S2C,

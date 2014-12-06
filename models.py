@@ -80,23 +80,23 @@ class ParkLogIdentity(Model):
 		"tid": "int NOT NULL",
 		"tdid": "int NOT NULL",
 		"typ": "int NOT NULL",
-		"iostat": "int NOT NULL",
 		"curr": "int NOT NULL",
-		"dcnt": "int NOT NULL",
+		"sinc": "int NOT NULL",
+		"sdec": "int NOT NULL",
 		"stat": "int NOT NULL",
 		"cnter": "int NOT NULL",
 		'updateTime': "datetime",
 	}
-	tblname = 'park_LogUniqIdent3'
+	tblname = 'park_LogUniqIdent5'
 	err = 0
-	def __init__(self, tid, tdid, typ, io, curr, dcnt, stat, counter):
+	def __init__(self, tid, tdid, typ, curr, sinc, sdec, stat, counter):
 		super(ParkLogIdentity, self).__init__()
 		self.tid = tid
 		self.tdid = tdid
 		self.typ = typ
-		self.io = io
 		self.curr = curr
-		self.dcnt = dcnt
+		self.sinc = sinc
+		self.sdec = sdec
 		self.stat = stat
 		self.counter = counter
 
@@ -104,8 +104,8 @@ class ParkLogIdentity(Model):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = "insert into %s(tid, tdid, typ,iostat,curr,dcnt,stat,cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
-				self.tblname, self.tid, self.tdid, self.typ, self.io, self.curr, self.dcnt, self.stat, self.counter, now)
+		cmd = "insert into %s(tid, tdid, typ, curr, sinc, sdec, stat, cnter,updateTime) values(%d,%d,%d,%d,%d,%d,%d,%d,'%s');"%( \
+				self.tblname, self.tid, self.tdid, self.typ, self.curr, self.sinc, self.sdec, self.stat, self.counter, now)
 		#log.debug("insert logident: %s" % cmd)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
@@ -116,43 +116,39 @@ class ParkLogIdentity(Model):
 		self.insertNewToDB()
 
 class ParkLog(Model):
+	RB_NONE = 0 	#不重设base
+	RB_MANUAL = 1 	#手工重设base
+	RB_AUTO = 2 	#自动重设base
+
 	TABLE_DEF = {
 		"id": "int primary key",			#终端ID(实际表示车场ID)
-		# "did": "int NOT NULL",				#子门ID
 		"typ": "int NOT NULL",				#车场类型
 		"curr": "int NOT NULL",				#当前剩余车位数
-		# "iostat":	"int NOT NULL",			#进出状态
-		# "dcnt": "int NOT NULL",				#变化数
 		"stat": "int NOT NULL",				#工作状态
-		# "cnter": "int NOT NULL",			#计数器
+		"base": "int NOT NULL",				#车位基数
 		'updateTime': "datetime",			#更新时间
 	}
-	tblname = 'park_Log3'
+	tblname = 'park_Log5'
 	err = 0
-	def __init__(self, tid, tdid, typ, io, curr, dcnt, stat, counter):
+	def __init__(self, tid, tdid, typ, curr, sinc, sdec, stat, reset_base=0):
 		super(ParkLog, self).__init__()
 		self.tid = tid
 		self.tdid = tdid
 		self.typ = typ
 		self.curr = curr
-		self.io = io
-		self.dcnt = dcnt 
+		self.sinc = sinc
+		self.sdec = sdec
 		self.stat = stat
-		self.counter = counter
 
-		if self.typ > 0x01:		#多门
-			last_curr = self.queryCurrent()
-			if self.io == 0x2D:		#减少
-				self.curr = last_curr - self.dcnt
-			elif self.io == 0x2B:    #增加
-				self.curr = last_curr + self.dcnt
-			elif self.io == 0xFF:
-				self.curr = curr     #直接用遥控器设置
-			elif self.io == 0x00:
-				pass
-			else:
-				log.critical("invalid park log data: tid: 0x%0X, tdid: 0x%0X, io: 0x%02X" % (tid, tdid, io))
-				log.critical("invalid: tid: 0x%X, tdid: 0x%X, type: 0x%X, curr: 0x%X, io: 0x%X, dcnt: 0x%X, stat: 0x%X, counter: 0x%X" % (tid, tdid, typ, curr, io, dcnt, stat, counter))
+		self.reset_base = reset_base
+		if self.reset_base == self.RB_AUTO:
+			self.curr = self.queryCurrent()		#从数据库读取当前车位数作为当前基数
+		elif self.reset_base == self.RB_MANUAL:
+			self.curr = curr
+		else:
+			if self.typ > 0x01:		#多门
+				last_curr = self.queryBase()
+				self.curr = last_curr + self.sinc - self.sdec
 
 	# @classmethod
 	# def checkTable(cls):
@@ -174,11 +170,10 @@ class ParkLog(Model):
 	def insertNewToDB(self):
 		if self.err > 0:
 			return
+		base = self.curr
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		cmd = "insert into %s(id, typ, curr, stat, updateTime) values(%d,%d,%d,%d,'%s');"%( \
-				self.tblname, self.tid, self.typ, self.curr, self.stat, now)
-		#cmd = "insert into %s(id,currCnt,updateTime) values(%d,%d,'%s');"%( \
-		#		self.tblname, self.tid, self.cnt, now)
+		cmd = "insert into %s(id, typ, curr, stat, base, updateTime) values(%d,%d,%d,%d,%d,'%s');"%( \
+				self.tblname, self.tid, self.typ, self.curr, self.stat, base, now)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 
@@ -191,16 +186,34 @@ class ParkLog(Model):
 		if results and len(results) > 0:
 			return results[0]
 		else:
-			log.critical("query current failed, tblname: %s, tid: 0x%0X" %( self.tblname, self.tid ))
+			log.warning("query current failed, tblname: %s, tid: 0x%0X" %( self.tblname, self.tid ))
+			return 0
+
+	def queryBase(self):
+		if self.err > 0:
+			return
+		cmd = "select base from %s where id=%d;"%(self.tblname, self.tid)
+		cursor = db.obj.Exec(cmd)
+		results = cursor.fetchone()
+		if results and len(results) > 0:
+			return results[0]
+		else:
+			log.warning("query base failed, tblname: %s, tid: 0x%0X" %( self.tblname, self.tid ))
+			return 0
 
 	def updateToDB(self):
 		if self.err > 0:
 			return
 		now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")[:-3]
-		#cmd = "update %s set currCnt=%d,updateTime='%s' where id=%d;"%( \
-		#	self.tblname, self.cnt, now, self.tid)
-		cmd = "update %s set typ=%d, curr=%d, stat=%d, updateTime='%s' where id=%d;"%( \
-			self.tblname, self.typ, self.curr, self.stat, now, self.tid)
+
+		if self.reset_base:
+			#将当前车位数和基数都设置为重置的基数
+			cmd = "update %s set curr=%d, base=%d, updateTime='%s' where id=%d;"%( \
+				self.tblname, self.curr, self.curr, now, self.tid)
+			log.debug('manual set update db. tid: 0x%0X, cur: %d' %(self.tid, self.curr))
+		else:
+			cmd = "update %s set typ=%d, curr=%d, stat=%d, updateTime='%s' where id=%d;"%( \
+				self.tblname, self.typ, self.curr, self.stat, now, self.tid)
 		db.obj.Exec(cmd)
 		db.obj.Commit()
 

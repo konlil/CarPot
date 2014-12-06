@@ -17,13 +17,29 @@ def hex_dump(buf):
 #======================================================================
 class netstream(asyncore.dispatcher):
 	def __init__(self):
+		'''
+		self.status取值
+		#00代表正常，
+		01代表：终端复位车辆进出计数变量完成（参照二，服务器向终端发送变量复位命令）
+		02代表GPRS联网异常
+		03代表掉电重启
+		04代表死机重启
+		05代表移动信号没有
+		06代表手机卡异常
+		07代表串行通讯0异常
+		08代表串行通讯2异常
+		'''
 		asyncore.dispatcher.__init__(self)
 		self.send_buf = ''
 		self.recv_buf = ''
 		self.state = gvars.NET_STATE_STOP
+		self.status = 0 
 		self.on_recv = None
 		self.on_close = None
 		self.peername = '<empty-peername>'
+		self.reset_counter = 0  #重置计数器
+		self.park_id = None
+		self.door_id = None
 
 	#connect the remote server
 	def connect_ex(self, address, port):
