@@ -7,7 +7,10 @@ import gvars
 import protoc
 import models
 import asyncore
-import threading
+import config
+from datetime import datetime, timedelta
+
+RESET_TIME = config.get('service', 'reset_time')
 
 #车场类，用于管理车场id和终端id的对应关系
 class netpark(object):
@@ -41,9 +44,12 @@ class nethost(asyncore.dispatcher):
 		self.timeslap = long(time.time()*1000)
 		self.period = 0
 
-		self.hour = 0
-		self.timer = threading.Timer(30, self.timerProc)
-		self.timer.start()
+		self.last_scheduled_time = None
+		reset_time = datetime.strptime(RESET_TIME, '%H:%M:%S')
+		now = datetime.now()
+		self.next_schedule_time = datetime(now.year,now.month,now.day, reset_time.hour, reset_time.minute, reset_time.second)
+		if self.next_schedule_time - now < timedelta():
+			self.next_schedule_time = self.next_schedule_time + timedelta(days=1)
 
 	#start listening
 	def startup(self, addr='0.0.0.0', port = 0):
@@ -68,6 +74,7 @@ class nethost(asyncore.dispatcher):
 		if self.state == gvars.NET_STATE_STOP:
 			return
 		try:
+			self.timer.cancel()
 			self.close()
 		except:
 			pass
@@ -138,6 +145,8 @@ class nethost(asyncore.dispatcher):
 		#log.debug('recv pkg from client: %s, data: %s'%(client.peername, data))
 		#self.queue.append((gvars.NET_DATA, client.hid, client.tag, data))
 		self.process_event(client.hid, client.tag, data)
+
+		self.checkScheduledProc()
 
 	def on_client_close(self, client):
 		hid, tag = client.hid, client.tag
@@ -234,7 +243,7 @@ class nethost(asyncore.dispatcher):
 					door_client = self.clients[cpos]
 					if door_client:
 						door_client.send_ack(pkgSum)
-					log.debug('return manual set. tid: 0x%0X, did: %d, curr: %d, tot: %d' %(pkgSum.cid, pkgSum.did, pkgSum.scnt, pkgSum.stot))
+					log.debug('send manual set. tid: 0x%0X, did: %d, curr: %d, tot: %d' %(pkgSum.cid, pkgSum.did, pkgSum.scnt, pkgSum.stot))
 
 		elif isinstance(data, protoc.PkgRep):
 			client.status = data.stat
@@ -243,39 +252,66 @@ class nethost(asyncore.dispatcher):
 			if client.status == 0x01:		#标识复位成功
 				client.reset_counter = 0
 			else:
-				# (self, tid, tdid, typ, curr, sinc, sdec, stat):
-				pkg = models.ParkLog(data.cid, data.did, data.ctype, data.scnt, data.sinc, data.sdec, data.stat)
-				pkg.writeToDB()
+				client.sinc = data.sinc
+				client.sdec = data.sdec
 
 				# (self, tid, tdid, typ, curr, sinc, sdec, stat, counter):
 				pkgIdent = models.ParkLogIdentity(data.cid, data.did, data.ctype, data.scnt, data.sinc, data.sdec, data.stat, data.counter)
 				pkgIdent.writeToDB()
 
+				# (self, tid, tdid, typ, curr, sinc, sdec, stat):
+				pkg = models.ParkLog(data.cid, data.did, data.ctype, data.scnt, data.sinc, data.sdec, data.stat)
+
 				if data.ctype > 0x01:    #多门
-					#parkInfo = models.ParkInfo(pkg.tid)
+					park = self.parks.get(data.cid)
+					if park:
+						curr = pkg.queryBase()
+						for cpos, cinfo in park.tdids.iteritems():
+							door_client = self.clients[cpos]
+							if door_client:
+								curr = curr + door_client.sinc - door_client.sdec
+						pkg.resetCurrent(curr)
+						pkg.writeToDB()
+						
+						for cpos, cinfo in park.tdids.iteritems():
+							door_client = self.clients[cpos]
+							if door_client:
+								pkgSum = protoc.PkgSum({})
+								pkgSum.cid = pkg.tid
+								pkgSum.did = cinfo[0]
+								pkgSum.scnt = pkg.curr
+								pkgSum.stot = data.stot
+								if pkgSum.scnt < 0:
+									pkgSum.scnt = 0
+								log.debug('send to door client. tid: 0x%0X, did: %d, curr: %d, tot: %d'%(pkg.tid, cinfo[0], pkg.curr, data.stot))
+								door_client.send_ack(pkgSum)
+				else:
+					pkg.writeToDB()
 
-					pkgSum = protoc.PkgSum({})
-					pkgSum.cid = pkg.tid
-					pkgSum.did = pkg.tdid
-					pkgSum.scnt = pkg.curr
-					pkgSum.stot = data.stot
-
-					if pkgSum.scnt < 0:
-						pkgSum.scnt = 0
-
-					# if pkg.tid == 6000:
-					# 	log.error('[send]6000----------------- %s' % pkgSum)
-					#发送回执数据
-					client.send_ack(pkgSum)
 		log.debug('data processed. tid: 0x%0X, did: %d, curr: %d, sinc: %d, sdec: %d, stat: %d'%(data.cid, data.did, data.scnt, data.sinc, data.sdec, data.stat))
 
-	def timerProc(self):
-		now = time.localtime()
+
+
+	def checkScheduledProc(self):
+		now = datetime.now()
+		#检查所有客户端如果需要发送重置，则发送(给半个小时的时间处理)
+		if self.last_scheduled_time != None and now - self.last_scheduled_time <= timedelta(minutes=30):
+			pkg = protoc.PkgReset({})
+			for i in xrange(len(self.clients)):
+				client = self.clients[i]
+				if client != None and client.reset_counter > 0:
+					if client.park_id and client.door_id:
+						log.debug('send reset command to client. tid: 0x%0X, did: %d'%(client.park_id, client.door_id))
+					client.send_ack(pkg)
+					client.reset_counter -= 1
+
 		#凌晨3点开始重置终端
-		if self.hour == 2 and now.tm_hour == 3:
+		delta = self.next_schedule_time - now
+		if delta <= timedelta():
 			#重设基数
 			for tid, park in self.parks.iteritems():
 				pkg = models.ParkLog(park.tid, 0, park.typ, 0, 0, 0, 0, reset_base=models.ParkLog.RB_AUTO)
+				pkg.resetCurrent(None)	#自动从数据库读取当前值
 				park.reset_cnt_base(pkg.curr)
 				pkg.writeToDB()
 				log.info('auto reset park base. tid: 0x%0X, base: %d' %(tid, pkg.curr))
@@ -283,15 +319,6 @@ class nethost(asyncore.dispatcher):
 				client = self.clients[i]
 				if client != None:
 					client.reset_counter = 10  #重置10次
+			self.last_scheduled_time = now
+			self.next_schedule_time = now + timedelta(days=1)
 
-		pkg = protoc.PkgReset({})
-		for i in xrange(len(self.clients)):
-			client = self.clients[i]
-			if client != None and client.reset_counter > 0:
-				if client.park_id and client.door_id:
-					log.debug('send reset command to client. tid: 0x%0X, did: %d'%(client.park_id, client.door_id))
-				client.send_ack(pkg)
-				client.reset_counter -= 1
-
-		#设置小时标记
-		self.hour = now.tm_hour

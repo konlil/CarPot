@@ -40,6 +40,8 @@ class netstream(asyncore.dispatcher):
 		self.reset_counter = 0  #ÖØÖÃ¼ÆÊıÆ÷
 		self.park_id = None
 		self.door_id = None
+		self.sinc = 0
+		self.sdec = 0
 
 	#connect the remote server
 	def connect_ex(self, address, port):

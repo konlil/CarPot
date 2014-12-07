@@ -141,14 +141,18 @@ class ParkLog(Model):
 		self.stat = stat
 
 		self.reset_base = reset_base
+		if self.reset_base == self.RB_MANUAL:
+			self.curr = curr
+		# else:
+		# 	if self.typ > 0x01:		#多门
+		# 		last_curr = self.queryBase()
+		# 		self.curr = last_curr + self.sinc - self.sdec
+
+	def resetCurrent(self, curr):
 		if self.reset_base == self.RB_AUTO:
 			self.curr = self.queryCurrent()		#从数据库读取当前车位数作为当前基数
-		elif self.reset_base == self.RB_MANUAL:
-			self.curr = curr
 		else:
-			if self.typ > 0x01:		#多门
-				last_curr = self.queryBase()
-				self.curr = last_curr + self.sinc - self.sdec
+			self.curr = curr
 
 	# @classmethod
 	# def checkTable(cls):

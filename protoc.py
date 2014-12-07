@@ -456,7 +456,7 @@ class PkgCmd(object):
 		('ftype', 	1,  'B'),		#帧类型
 		('cid', 	1,  'I'),		#车场ID
 		('did',		1,  'B'),		#子门编号
-		('ip',		4,  'B'),		#ip
+		('ip',		1,  'I'),		#ip
 		('scnt',	1, 	'I'),		#剩余车位数
 		('stot',	1, 	'I'),		#车位总数
 		('fend',	1,	'H'),		#帧结尾
